@@ -48,6 +48,31 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.BAD_REQUEST, "Malformed JSON request body", request.getRequestURI());
     }
 
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotWritableException.class)
+    public ResponseEntity<ApiError> handleMessageNotWritable(
+            org.springframework.http.converter.HttpMessageNotWritableException ex, HttpServletRequest request) {
+        Throwable cause = ex.getCause();
+        while (cause != null) {
+            String msg = cause.getMessage();
+            if (cause instanceof org.apache.catalina.connector.ClientAbortException ||
+                    (msg != null && (
+                            msg.contains("aborted by the software") ||
+                            msg.contains("Broken pipe") ||
+                            msg.contains("Connection reset")))) {
+                log.debug("Client closed/aborted connection at [{}]: {}", request.getRequestURI(), msg);
+                return null;
+            }
+            cause = cause.getCause();
+        }
+        log.error("Failed to write response at [{}]: {}", request.getRequestURI(), ex.getMessage(), ex);
+        return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to serialize response", request.getRequestURI());
+    }
+
+    @ExceptionHandler(org.apache.catalina.connector.ClientAbortException.class)
+    public void handleClientAbort(org.apache.catalina.connector.ClientAbortException ex, HttpServletRequest request) {
+        log.debug("Client aborted connection at [{}]: {}", request.getRequestURI(), ex.getMessage());
+    }
+
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<ApiError> handleConflict(
             ConflictException ex, HttpServletRequest request) {
@@ -65,6 +90,12 @@ public class GlobalExceptionHandler {
             DataIntegrityViolationException ex, HttpServletRequest request) {
         log.warn("Database constraint violation at [{}]: {}", request.getRequestURI(), ex.getMessage());
         return buildError(HttpStatus.CONFLICT, "A resource with these details already exists or violates constraint", request.getRequestURI());
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiError> handleIllegalState(
+            IllegalStateException ex, HttpServletRequest request) {
+        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), request.getRequestURI());
     }
 
     @ExceptionHandler(BadRequestException.class)
