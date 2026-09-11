@@ -1,11 +1,16 @@
 package com.krishiai.auth.service;
 
+import com.krishiai.auth.dto.ChangePasswordRequest;
 import com.krishiai.auth.dto.LoginRequest;
 import com.krishiai.auth.dto.LoginResponse;
+import com.krishiai.auth.dto.RefreshTokenRequest;
 import com.krishiai.auth.dto.RegisterRequest;
+import com.krishiai.auth.dto.TokenResponse;
+import com.krishiai.auth.entity.RefreshToken;
 import com.krishiai.common.exception.BadRequestException;
 import com.krishiai.common.exception.ConflictException;
 import com.krishiai.common.exception.ForbiddenException;
+import com.krishiai.common.exception.ResourceNotFoundException;
 import com.krishiai.common.exception.UnauthorizedException;
 import com.krishiai.expert.service.ExpertProfileService;
 import com.krishiai.security.jwt.JwtTokenProvider;
@@ -33,6 +38,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenService refreshTokenService;
 
     // @Lazy prevents a circular dependency: AuthService → ExpertProfileService → UserRepository → AuthService
     @Lazy
@@ -41,6 +47,8 @@ public class AuthServiceImpl implements AuthService {
 
     @Value("${app.jwt.expiration-ms:86400000}")
     private long jwtExpirationMs;
+
+    // ── Register ─────────────────────────────────────────────────────────────
 
     @Override
     @Transactional
@@ -69,12 +77,9 @@ public class AuthServiceImpl implements AuthService {
         User user = new User();
         user.setEmail(normalizedEmail);
         user.setPasswordHash(passwordEncoder.encode(request.password()));
-        user.setFirstName(request.firstName().strip());
-        user.setLastName(request.lastName().strip());
+        user.setFullName(request.fullName().strip());
         user.setPhone(request.phone() != null && !request.phone().isBlank() ? request.phone().strip() : null);
         user.setRole(role);
-        // All registered users (farmers & experts) start ACTIVE to allow dashboard & onboarding access.
-        // Professional verification status is managed separately on ExpertProfile.
         user.setStatus(UserStatus.ACTIVE);
         user.setEmailVerified(false);
         user.setPhoneVerified(false);
@@ -92,9 +97,11 @@ public class AuthServiceImpl implements AuthService {
         return UserResponse.from(savedUser);
     }
 
+    // ── Login ─────────────────────────────────────────────────────────────────
+
     @Override
     @Transactional
-    public LoginResponse login(LoginRequest request, String clientIp) {
+    public TokenResponse login(LoginRequest request, String clientIp) {
         String normalizedEmail = User.normaliseEmail(request.email());
         User user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
@@ -116,6 +123,87 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // Check account status
+        checkAccountStatus(user);
+
+        user.recordSuccessfulLogin(clientIp);
+        userRepository.save(user);
+
+        log.info("User authenticated successfully: {} (Role: {})", user.getEmail(), user.getRole());
+
+        String accessToken = jwtTokenProvider.generateToken(user.getId(), user.getRole());
+        String refreshToken = refreshTokenService.createRefreshToken(user.getId());
+        return TokenResponse.of(accessToken, jwtExpirationMs, refreshToken, UserResponse.from(user));
+    }
+
+    // ── Refresh Token ─────────────────────────────────────────────────────────
+
+    @Override
+    @Transactional
+    public TokenResponse refreshToken(RefreshTokenRequest request) {
+        // Validate the presented refresh token
+        RefreshToken storedToken = refreshTokenService.validateRefreshToken(request.refreshToken());
+        Long userId = storedToken.getUserId();
+
+        // Load the user and verify their account is still allowed to authenticate
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UnauthorizedException("User associated with this refresh token no longer exists"));
+
+        checkAccountStatus(user);
+
+        // Token rotation: revoke old token, issue new pair
+        refreshTokenService.revokeRefreshToken(request.refreshToken());
+        String newAccessToken = jwtTokenProvider.generateToken(user.getId(), user.getRole());
+        String newRefreshToken = refreshTokenService.createRefreshToken(user.getId());
+
+        log.info("Token refreshed for userId={} ({})", userId, user.getEmail());
+        return TokenResponse.of(newAccessToken, jwtExpirationMs, newRefreshToken, UserResponse.from(user));
+    }
+
+    // ── Logout ────────────────────────────────────────────────────────────────
+
+    @Override
+    @Transactional
+    public void logout(Long userId) {
+        refreshTokenService.revokeAllForUser(userId);
+        log.info("User logged out, refresh tokens revoked for userId={}", userId);
+    }
+
+    // ── Change Password ───────────────────────────────────────────────────────
+
+    @Override
+    @Transactional
+    public void changePassword(Long userId, ChangePasswordRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+            throw new BadRequestException("Current password is incorrect");
+        }
+
+        if (passwordEncoder.matches(request.newPassword(), user.getPasswordHash())) {
+            throw new BadRequestException("New password must be different from the current password");
+        }
+
+        user.changePassword(passwordEncoder.encode(request.newPassword()));
+        userRepository.save(user);
+
+        // Revoke all refresh tokens to force re-authentication on other devices
+        refreshTokenService.revokeAllForUser(userId);
+
+        log.info("Password changed successfully for userId={} ({})", userId, user.getEmail());
+    }
+
+    // ── Shared helpers ────────────────────────────────────────────────────────
+
+    /**
+     * Check account status and throw an appropriate exception if the account
+     * is not allowed to authenticate. Called during login and token refresh.
+     */
+    private void checkAccountStatus(User user) {
+        if (user.getStatus() == UserStatus.BLOCKED) {
+            throw new ForbiddenException("Your account has been blocked. Please contact support.");
+        }
+
         if (user.getStatus() == UserStatus.SUSPENDED) {
             throw new ForbiddenException("Your account has been suspended. Please contact support.");
         }
@@ -131,13 +219,5 @@ public class AuthServiceImpl implements AuthService {
         if (user.getStatus() == UserStatus.PENDING && user.getRole() != UserRole.ROLE_EXPERT) {
             throw new ForbiddenException("Your account is pending verification. Please check your email.");
         }
-
-        user.recordSuccessfulLogin(clientIp);
-        userRepository.save(user);
-
-        log.info("User authenticated successfully: {} (Role: {})", user.getEmail(), user.getRole());
-
-        String token = jwtTokenProvider.generateToken(user.getId(), user.getRole());
-        return LoginResponse.of(token, jwtExpirationMs, UserResponse.from(user));
     }
 }

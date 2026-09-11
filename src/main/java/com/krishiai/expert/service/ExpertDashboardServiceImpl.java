@@ -234,7 +234,7 @@ public class ExpertDashboardServiceImpl implements ExpertDashboardService {
         );
 
         // Substitute first farmer with real registered farmer from DB if available
-        String realFarmerName = farmers.isEmpty() ? null : farmers.get(0).getFirstName() + " " + farmers.get(0).getLastName();
+        String realFarmerName = farmers.isEmpty() ? null : farmers.get(0).getFullName() + " " + farmers.get(0);
         String realFarmerPhone = farmers.isEmpty() ? null : farmers.get(0).getPhone();
 
         int idx = 0;
@@ -310,7 +310,7 @@ public class ExpertDashboardServiceImpl implements ExpertDashboardService {
     }
 
     private List<ExpertScheduleSlotDto> buildSchedule(List<User> farmers) {
-        String farmerName = farmers.isEmpty() ? "Bishnu Adhikari" : farmers.get(0).getFirstName() + " " + farmers.get(0).getLastName();
+        String farmerName = farmers.isEmpty() ? "Bishnu Adhikari" : farmers.get(0).getFullName() + " " + farmers.get(0);
         return List.of(
                 new ExpertScheduleSlotDto(1L, "Today", "02:00 PM - 02:45 PM", "VIDEO", "BOOKED", farmerName),
                 new ExpertScheduleSlotDto(2L, "Today", "04:30 PM - 05:00 PM", "AUDIO", "BOOKED", "Sunita Sharma"),

@@ -18,11 +18,8 @@ public record RegisterRequest(
 
         @NotBlank(message = "First name is required")
         @Size(max = 100, message = "First name cannot exceed 100 characters")
-        String firstName,
+        String fullName,
 
-        @NotBlank(message = "Last name is required")
-        @Size(max = 100, message = "Last name cannot exceed 100 characters")
-        String lastName,
 
         @Pattern(
                 regexp = "^\\+?[1-9]\\d{6,14}$",

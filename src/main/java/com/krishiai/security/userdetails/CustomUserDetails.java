@@ -61,7 +61,7 @@ public class CustomUserDetails implements UserDetails {
     public boolean isEnabled() {
         // ROLE_EXPERT may remain in PENDING status until their professional verification
         // is reviewed by an admin. Their account is enabled for login; only their
-        // verified status is pending. SUSPENDED and INACTIVE accounts are disabled.
+        // verified status is pending. SUSPENDED, INACTIVE, and BLOCKED accounts are disabled.
         return user.getStatus() == UserStatus.ACTIVE
                 || user.getStatus() == UserStatus.PENDING;
     }

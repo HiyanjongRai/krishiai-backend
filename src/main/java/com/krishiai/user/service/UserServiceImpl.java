@@ -32,8 +32,7 @@ public class UserServiceImpl implements UserService {
     public UserResponse updateProfile(Long userId, UserUpdateRequest request) {
         User user = getUserEntity(userId);
 
-        user.setFirstName(request.firstName().strip());
-        user.setLastName(request.lastName().strip());
+        user.setFullName(request.fullName().strip());
 
         if (request.profileImage() != null) {
             user.setProfileImage(request.profileImage().strip());

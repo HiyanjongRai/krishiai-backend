@@ -27,7 +27,7 @@ public record VerifiedExpertResponse(
 ) {
     public static VerifiedExpertResponse from(ExpertProfile ep) {
         String fullName = ep.getUser() != null
-                ? (ep.getUser().getFirstName() + " " + ep.getUser().getLastName()).trim()
+                ? (ep.getUser().getFullName() + " " + ep.getUser()).trim()
                 : "Agricultural Specialist";
 
         // ONLY verified crop expertise is exposed to farmers

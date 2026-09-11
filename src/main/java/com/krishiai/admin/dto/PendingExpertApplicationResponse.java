@@ -37,7 +37,7 @@ public record PendingExpertApplicationResponse(
 ) {
     public static PendingExpertApplicationResponse from(ExpertProfile ep) {
         String fullName = ep.getUser() != null
-                ? (ep.getUser().getFirstName() + " " + ep.getUser().getLastName()).trim()
+                ? (ep.getUser().getFullName() + " " + ep.getUser()).trim()
                 : "Unknown Expert";
         String email = ep.getUser() != null ? ep.getUser().getEmail() : null;
         String phone = ep.getUser() != null ? ep.getUser().getPhone() : null;

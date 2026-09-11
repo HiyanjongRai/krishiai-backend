@@ -9,8 +9,6 @@ import java.time.LocalDateTime;
 public record UserResponse(
         Long id,
         String email,
-        String firstName,
-        String lastName,
         String fullName,
         String phone,
         String profileImage,
@@ -24,8 +22,6 @@ public record UserResponse(
         return new UserResponse(
                 user.getId(),
                 user.getEmail(),
-                user.getFirstName(),
-                user.getLastName(),
                 user.getFullName(),
                 user.getPhone(),
                 user.getProfileImage(),

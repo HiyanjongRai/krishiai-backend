@@ -91,7 +91,7 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
                 .findPendingApplicationsWithDetails(ExpertApplicationStatus.SUBMITTED);
 
         for (ExpertProfile ep : pendingProfiles) {
-            String name = ep.getUser() != null ? (ep.getUser().getFirstName() + " " + ep.getUser().getLastName()).trim() : "Candidate";
+            String name = ep.getUser() != null ? (ep.getUser().getFullName() + " " + ep.getUser()).trim() : "Candidate";
             String title = ep.getDesignation() != null ? ep.getDesignation() : "Specialist";
             activities.add(new AdminDashboardStatsResponse.ActivityDto(
                     "New expert application submitted",

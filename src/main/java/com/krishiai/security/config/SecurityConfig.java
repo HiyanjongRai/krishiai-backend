@@ -88,8 +88,11 @@ public class SecurityConfig {
                         // Permit all OPTIONS preflight requests from browser
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // Public authentication endpoints
-                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        // Public authentication endpoints (no Bearer token required)
+                        .requestMatchers("/api/v1/auth/register").permitAll()
+                        .requestMatchers("/api/v1/auth/login").permitAll()
+                        .requestMatchers("/api/v1/auth/refresh").permitAll()
+                        // /api/v1/auth/logout and /api/v1/auth/change-password require authentication
 
                         // Public read-only catalog and knowledge
                         .requestMatchers(HttpMethod.GET, "/api/v1/crops/**").permitAll()

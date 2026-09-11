@@ -47,11 +47,9 @@ public class DataInitializer implements CommandLineRunner {
     @Value("${app.admin.password}")
     private String adminPassword;
 
-    @Value("${app.admin.first-name}")
-    private String adminFirstName;
+    @Value("${app.admin.Fullname}")
+    private String adminFullName;
 
-    @Value("${app.admin.last-name}")
-    private String adminLastName;
 
     @Override
     @Transactional
@@ -72,6 +70,14 @@ public class DataInitializer implements CommandLineRunner {
         } catch (Exception e) {
             log.warn("Could not alter column lengths on expert_profiles: {}", e.getMessage());
         }
+
+        try {
+            jdbcTemplate.execute("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_status_check");
+            jdbcTemplate.execute("ALTER TABLE users ADD CONSTRAINT users_status_check CHECK (status IN ('ACTIVE', 'INACTIVE', 'SUSPENDED', 'PENDING', 'BLOCKED'))");
+            log.info("Successfully updated users_status_check constraint on users table");
+        } catch (Exception e) {
+            log.warn("Could not update users_status_check constraint: {}", e.getMessage());
+        }
     }
 
     private void seedAdminUser() {
@@ -84,10 +90,8 @@ public class DataInitializer implements CommandLineRunner {
         User admin = User.createAdmin(
                 normalizedEmail,
                 passwordEncoder.encode(adminPassword),
-                adminFirstName,
-                adminLastName
+                adminFullName
         );
-
         userRepository.save(admin);
         log.info("Successfully seeded default platform admin: {}", normalizedEmail);
     }
@@ -184,7 +188,7 @@ public class DataInitializer implements CommandLineRunner {
         for (ExpertProfile profile : profiles) {
             if (expertDocumentRepository.findByExpertProfileId(profile.getId()).isEmpty()) {
                 String expName = profile.getUser() != null
-                        ? (profile.getUser().getFirstName() + "_" + profile.getUser().getLastName()).replaceAll("\\s+", "_")
+                        ? (profile.getUser().getFullName() + "_" ).replaceAll("\\s+", "_")
                         : "Expert";
                 expertDocumentRepository.save(new ExpertDocument(
                         profile,

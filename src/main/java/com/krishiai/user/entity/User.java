@@ -48,13 +48,10 @@ public class User extends BaseEntity {
 
     @NotBlank(message = "First name must not be blank")
     @Size(max = 100, message = "First name must not exceed 100 characters")
-    @Column(name = "first_name", nullable = false, length = 100)
-    private String firstName;
+    @Column(name = "full_name", nullable = false, length = 100)
+    private String fullName;
 
-    @NotBlank(message = "Last name must not be blank")
-    @Size(max = 100, message = "Last name must not exceed 100 characters")
-    @Column(name = "last_name", nullable = false, length = 100)
-    private String lastName;
+
 
     @Pattern(
             regexp = "^\\+?[1-9]\\d{6,14}$",
@@ -102,8 +99,7 @@ public class User extends BaseEntity {
         User user = new User();
         user.email = normaliseEmail(email);
         user.passwordHash = passwordHash;
-        user.firstName = firstName.strip();
-        user.lastName = lastName.strip();
+        user.fullName = firstName.strip();
         user.phone = phone != null && !phone.isBlank() ? phone.strip() : null;
         user.role = UserRole.ROLE_FARMER;
         user.status = UserStatus.ACTIVE;
@@ -123,8 +119,7 @@ public class User extends BaseEntity {
         User user = new User();
         user.email = normaliseEmail(email);
         user.passwordHash = passwordHash;
-        user.firstName = firstName.strip();
-        user.lastName = lastName.strip();
+        user.fullName = firstName.strip();
         user.phone = phone != null && !phone.isBlank() ? phone.strip() : null;
         user.role = UserRole.ROLE_EXPERT;
         user.status = UserStatus.PENDING; // Must remain PENDING until approved by admin
@@ -137,14 +132,12 @@ public class User extends BaseEntity {
     public static User createAdmin(
             String email,
             String passwordHash,
-            String firstName,
-            String lastName
+            String firstName
     ) {
         User user = new User();
         user.email = normaliseEmail(email);
         user.passwordHash = passwordHash;
-        user.firstName = firstName.strip();
-        user.lastName = lastName.strip();
+        user.fullName = firstName.strip();
         user.role = UserRole.ROLE_ADMIN;
         user.status = UserStatus.ACTIVE;
         user.emailVerified = true;
@@ -199,7 +192,7 @@ public class User extends BaseEntity {
     }
 
     public String getFullName() {
-        return firstName + " " + lastName;
+        return fullName + " " ;
     }
 
     @Override

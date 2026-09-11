@@ -34,7 +34,7 @@ public record ExpertSummaryResponse(
 ) {
     public static ExpertSummaryResponse from(ExpertProfile ep) {
         String fullName = ep.getUser() != null
-                ? (ep.getUser().getFirstName() + " " + ep.getUser().getLastName()).trim()
+                ? (ep.getUser().getFullName() + " " + ep.getUser()).trim()
                 : "Unknown Expert";
 
         List<String> primaryCrops = ep.getCropExpertises() == null ? List.of() :
