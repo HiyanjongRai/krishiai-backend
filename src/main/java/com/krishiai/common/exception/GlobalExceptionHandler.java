@@ -119,7 +119,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiError> handleAuthentication(
             AuthenticationException ex, HttpServletRequest request) {
-        return buildError(HttpStatus.UNAUTHORIZED, "Authentication failed: " + ex.getMessage(), request.getRequestURI());
+        return buildError(HttpStatus.UNAUTHORIZED, "Authentication failed", request.getRequestURI());
     }
 
     @ExceptionHandler(UnauthorizedException.class)
@@ -144,6 +144,19 @@ public class GlobalExceptionHandler {
                 fieldErrors
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(MediaUploadException.class)
+    public ResponseEntity<ApiError> handleMediaUpload(
+            MediaUploadException ex, HttpServletRequest request) {
+        log.warn("Media upload error at [{}]: {}", request.getRequestURI(), ex.getMessage());
+        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiError> handleMaxUploadSizeExceeded(
+            org.springframework.web.multipart.MaxUploadSizeExceededException ex, HttpServletRequest request) {
+        return buildError(HttpStatus.PAYLOAD_TOO_LARGE, "Uploaded file exceeds the maximum allowed size limit.", request.getRequestURI());
     }
 
     @ExceptionHandler(Exception.class)

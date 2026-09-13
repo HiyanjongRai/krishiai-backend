@@ -60,4 +60,16 @@ public class LocationController {
                 "Child locations retrieved successfully",
                 locationService.getChildLocations(parentId)));
     }
+
+    /**
+     * GET /api/v1/locations/{locationId}
+     * Returns detail of the specified location.
+     */
+    @GetMapping("/{locationId}")
+    public ResponseEntity<ApiResponse<LocationResponse>> getLocationById(
+            @PathVariable Long locationId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                "Location retrieved successfully",
+                locationService.getLocationById(locationId)));
+    }
 }

@@ -39,6 +39,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
+    private final PasswordResetTokenService passwordResetTokenService;
 
     // @Lazy prevents a circular dependency: AuthService → ExpertProfileService → UserRepository → AuthService
     @Lazy
@@ -180,6 +181,12 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("Current password is incorrect");
         }
 
+        if (request.confirmPassword() != null && !request.confirmPassword().isBlank()) {
+            if (!request.newPassword().equals(request.confirmPassword())) {
+                throw new BadRequestException("New password and confirm password do not match");
+            }
+        }
+
         if (passwordEncoder.matches(request.newPassword(), user.getPasswordHash())) {
             throw new BadRequestException("New password must be different from the current password");
         }
@@ -191,6 +198,51 @@ public class AuthServiceImpl implements AuthService {
         refreshTokenService.revokeAllForUser(userId);
 
         log.info("Password changed successfully for userId={} ({})", userId, user.getEmail());
+    }
+
+    // ── Forgot Password ───────────────────────────────────────────────────────
+
+    @Override
+    @Transactional
+    public void forgotPassword(com.krishiai.auth.dto.ForgotPasswordRequest request) {
+        String normalizedEmail = User.normaliseEmail(request.email());
+        userRepository.findByEmail(normalizedEmail).ifPresent(user -> {
+            if (user.getStatus() != UserStatus.BLOCKED && user.getStatus() != UserStatus.SUSPENDED) {
+                String rawToken = passwordResetTokenService.createResetToken(user.getId());
+                log.info("Password reset token generated for user: {} (token length={})", user.getEmail(), rawToken.length());
+            } else {
+                log.warn("Password reset requested for non-active user: {}", user.getEmail());
+            }
+        });
+        // Always succeed silently to prevent user enumeration attacks
+    }
+
+    // ── Reset Password ────────────────────────────────────────────────────────
+
+    @Override
+    @Transactional
+    public void resetPassword(com.krishiai.auth.dto.ResetPasswordRequest request) {
+        if (!request.newPassword().equals(request.confirmPassword())) {
+            throw new BadRequestException("New password and confirm password do not match");
+        }
+
+        com.krishiai.auth.entity.PasswordResetToken resetToken = passwordResetTokenService.validateResetToken(request.token());
+        User user = userRepository.findById(resetToken.getUserId())
+                .orElseThrow(() -> new BadRequestException("User associated with reset token not found"));
+
+        checkAccountStatus(user);
+
+        if (passwordEncoder.matches(request.newPassword(), user.getPasswordHash())) {
+            throw new BadRequestException("New password must be different from current password");
+        }
+
+        user.changePassword(passwordEncoder.encode(request.newPassword()));
+        userRepository.save(user);
+
+        passwordResetTokenService.markTokenUsed(resetToken);
+        refreshTokenService.revokeAllForUser(user.getId());
+
+        log.info("Password reset successfully for user: {}", user.getEmail());
     }
 
     // ── Shared helpers ────────────────────────────────────────────────────────

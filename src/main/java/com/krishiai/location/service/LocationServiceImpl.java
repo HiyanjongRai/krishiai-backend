@@ -51,4 +51,18 @@ public class LocationServiceImpl implements LocationService {
                 .map(LocationResponse::from)
                 .toList();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public LocationResponse getLocationById(Long id) {
+        return LocationResponse.from(getLocationEntity(id));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public com.krishiai.location.entity.Location getLocationEntity(Long id) {
+        return locationRepository.findById(id)
+                .filter(com.krishiai.location.entity.Location::isActive)
+                .orElseThrow(() -> new com.krishiai.common.exception.ResourceNotFoundException("Location not found with id: " + id));
+    }
 }

@@ -41,7 +41,7 @@ public class AuthController {
 
     /**
      * Authenticate with email and password.
-     * Returns both an access token (24 h) and a refresh token (30 days).
+     * Returns both a short-lived access token and a refresh token.
      * Public — no authentication required.
      */
     @PostMapping("/login")
@@ -88,5 +88,27 @@ public class AuthController {
             @Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(principal.getUserId(), request);
         return ResponseEntity.ok(ApiResponse.success("Password changed successfully"));
+    }
+
+    /**
+     * Request a password reset instructions. Always returns generic message to prevent account enumeration.
+     * Public — no authentication required.
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(
+            @Valid @RequestBody com.krishiai.auth.dto.ForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+        return ResponseEntity.ok(ApiResponse.success("If an account exists, password reset instructions have been sent."));
+    }
+
+    /**
+     * Reset password using a valid reset token.
+     * Public — no authentication required.
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(
+            @Valid @RequestBody com.krishiai.auth.dto.ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.ok(ApiResponse.success("Password has been reset successfully. Please log in with your new password."));
     }
 }

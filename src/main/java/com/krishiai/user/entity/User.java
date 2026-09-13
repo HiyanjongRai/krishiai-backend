@@ -63,6 +63,9 @@ public class User extends BaseEntity {
     @Column(name = "profile_image", length = 500)
     private String profileImage;
 
+    @Column(name = "profile_image_public_id", length = 255)
+    private String profileImagePublicId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 30)
     private UserRole role;

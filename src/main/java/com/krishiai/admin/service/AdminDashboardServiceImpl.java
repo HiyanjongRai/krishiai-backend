@@ -1,5 +1,6 @@
 package com.krishiai.admin.service;
 
+import com.krishiai.admin.dto.*;
 import com.krishiai.admin.dto.AdminDashboardStatsResponse;
 import com.krishiai.admin.dto.ExpertSummaryResponse;
 import com.krishiai.admin.dto.FarmerSummaryResponse;
@@ -11,6 +12,7 @@ import com.krishiai.common.exception.ResourceNotFoundException;
 import com.krishiai.crop.entity.Crop;
 import com.krishiai.crop.repository.CropRepository;
 import com.krishiai.expert.dto.CropExpertiseResponse;
+import com.krishiai.expert.entity.CropExpertiseVerificationStatus;
 import com.krishiai.expert.entity.ExpertApplicationStatus;
 import com.krishiai.expert.entity.ExpertCropExpertise;
 import com.krishiai.expert.entity.ExpertProfile;
@@ -22,6 +24,8 @@ import com.krishiai.user.repository.UserRepository;
 import com.krishiai.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +37,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class AdminDashboardServiceImpl implements AdminDashboardService {
+
+    private static final int ADMIN_LIST_LIMIT = 500;
 
     private final UserRepository userRepository;
     private final ExpertProfileRepository expertProfileRepository;
@@ -188,7 +194,9 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
     @Transactional(readOnly = true)
     public List<PendingExpertApplicationResponse> getPendingExpertApplications() {
         List<ExpertProfile> applications = expertProfileRepository
-                .findPendingApplicationsWithDetails(ExpertApplicationStatus.SUBMITTED);
+                .findPendingApplicationsWithDetails(
+                        ExpertApplicationStatus.SUBMITTED,
+                        PageRequest.of(0, ADMIN_LIST_LIMIT));
 
         return applications.stream()
                 .map(PendingExpertApplicationResponse::from)
@@ -329,10 +337,107 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
     }
 
     @Override
+    @Transactional
+    public BatchExpertiseVerificationResponse batchVerifyExpertises(BatchExpertiseVerificationRequest request, Long adminUserId, String adminEmail) {
+        List<Long> verifiedIds = new java.util.ArrayList<>();
+        List<Long> rejectedIds = new java.util.ArrayList<>();
+        List<Long> requestedInfoIds = new java.util.ArrayList<>();
+
+        for (BatchExpertiseVerificationRequest.Item item : request.items()) {
+            ExpertCropExpertise entry = cropExpertiseRepository.findById(item.expertiseId())
+                    .orElse(null);
+            if (entry == null) {
+                log.warn("Batch verification: expertiseId={} not found, skipping", item.expertiseId());
+                continue;
+            }
+
+            Long profileId = entry.getExpertProfile() != null ? entry.getExpertProfile().getId() : null;
+            String prevStatus = entry.getVerificationStatus() != null ? entry.getVerificationStatus().name() : "UNKNOWN";
+            String decision = item.decision() != null ? item.decision().trim().toUpperCase() : "VERIFY";
+
+            if ("VERIFY".equals(decision)) {
+                entry.verify(adminUserId, item.verificationMethod());
+                cropExpertiseRepository.save(entry);
+                verifiedIds.add(entry.getId());
+                auditLogRepository.save(new ExpertAuditLog(
+                        adminUserId, adminEmail, profileId,
+                        "EXPERTISE_VERIFIED", prevStatus, "VERIFIED",
+                        entry.getCrop() != null ? entry.getCrop().getId() : null,
+                        request.notes() != null ? request.notes() : "Batch verification approved by admin"
+                ));
+            } else if ("REJECT".equals(decision)) {
+                String reason = item.reason() != null && !item.reason().isBlank()
+                        ? item.reason().trim()
+                        : (request.notes() != null ? request.notes() : "Supporting evidence does not sufficiently support this expertise.");
+                entry.reject(adminUserId, reason);
+                cropExpertiseRepository.save(entry);
+                rejectedIds.add(entry.getId());
+                auditLogRepository.save(new ExpertAuditLog(
+                        adminUserId, adminEmail, profileId,
+                        "EXPERTISE_REJECTED", prevStatus, "REJECTED",
+                        entry.getCrop() != null ? entry.getCrop().getId() : null,
+                        reason
+                ));
+            } else if ("REQUEST_EVIDENCE".equals(decision)) {
+                entry.setVerificationStatus(CropExpertiseVerificationStatus.EVIDENCE_SUBMITTED);
+                entry.setRejectionReason(item.reason() != null ? item.reason().trim() : "Additional documentation requested by admin");
+                cropExpertiseRepository.save(entry);
+                requestedInfoIds.add(entry.getId());
+                auditLogRepository.save(new ExpertAuditLog(
+                        adminUserId, adminEmail, profileId,
+                        "EXPERTISE_EVIDENCE_REQUESTED", prevStatus, "EVIDENCE_SUBMITTED",
+                        entry.getCrop() != null ? entry.getCrop().getId() : null,
+                        entry.getRejectionReason()
+                ));
+            }
+        }
+
+        log.info("Admin {} batch processed {} expertise claims (verified={}, rejected={}, requestedInfo={})",
+                adminEmail, request.items().size(), verifiedIds.size(), rejectedIds.size(), requestedInfoIds.size());
+
+        return new BatchExpertiseVerificationResponse(
+                verifiedIds.size() + rejectedIds.size() + requestedInfoIds.size(),
+                verifiedIds.size(),
+                rejectedIds.size(),
+                requestedInfoIds.size(),
+                verifiedIds,
+                rejectedIds,
+                requestedInfoIds
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AdminExpertiseVerificationItemResponse> getExpertiseVerifications(String status) {
+        PageRequest pageable = PageRequest.of(0, 150);
+        List<ExpertCropExpertise> list;
+
+        if (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status)) {
+            try {
+                CropExpertiseVerificationStatus verStatus = CropExpertiseVerificationStatus.valueOf(status.trim().toUpperCase());
+                list = cropExpertiseRepository.findByVerificationStatusInWithDetails(List.of(verStatus), pageable);
+            } catch (IllegalArgumentException e) {
+                // If PENDING requested, search for both PENDING and EVIDENCE_SUBMITTED and SELF_DECLARED
+                list = cropExpertiseRepository.findByVerificationStatusInWithDetails(
+                        List.of(CropExpertiseVerificationStatus.EVIDENCE_SUBMITTED, CropExpertiseVerificationStatus.SELF_DECLARED),
+                        pageable
+                );
+            }
+        } else {
+            // Default: show claims requiring review (EVIDENCE_SUBMITTED and SELF_DECLARED)
+            list = cropExpertiseRepository.findAllWithDetails(pageable);
+        }
+
+        return list.stream()
+                .map(AdminExpertiseVerificationItemResponse::from)
+                .toList();
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<FarmerSummaryResponse> getFarmers() {
         return userRepository.findByRole(UserRole.ROLE_FARMER,
-                        org.springframework.data.domain.Pageable.unpaged())
+                        PageRequest.of(0, ADMIN_LIST_LIMIT, Sort.by(Sort.Direction.DESC, "createdAt")))
                 .stream()
                 .map(FarmerSummaryResponse::from)
                 .toList();
@@ -341,7 +446,7 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
     @Override
     @Transactional(readOnly = true)
     public List<ExpertSummaryResponse> getAllExperts() {
-        return expertProfileRepository.findAllWithUserDetails()
+        return expertProfileRepository.findAllWithUserDetails(PageRequest.of(0, ADMIN_LIST_LIMIT))
                 .stream()
                 .map(ExpertSummaryResponse::from)
                 .toList();

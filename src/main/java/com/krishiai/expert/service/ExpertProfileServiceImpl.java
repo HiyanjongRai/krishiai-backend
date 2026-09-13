@@ -77,24 +77,52 @@ public class ExpertProfileServiceImpl implements ExpertProfileService {
                 profileRepository.findByUserIdWithDetails(userId).orElse(saved));
     }
 
-    // ─── Crop Expertise ───────────────────────────────────────────────────────
+    // ─── Crop & Domain Expertise ───────────────────────────────────────────────
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.List<CropExpertiseResponse> getMyExpertises(Long userId) {
+        ExpertProfile profile = requireProfile(userId);
+        return cropExpertiseRepository.findByExpertProfileId(profile.getId()).stream()
+                .map(CropExpertiseResponse::from)
+                .toList();
+    }
 
     @Override
     @Transactional
     public CropExpertiseResponse addOrUpdateCropExpertise(Long userId, AddCropExpertiseRequest request) {
         ExpertProfile profile = requireProfile(userId);
 
-        Crop crop = cropRepository.findById(request.cropId())
-                .orElseThrow(() -> new ResourceNotFoundException("Crop not found with id: " + request.cropId()));
+        if (request.cropId() == null && (request.expertiseArea() == null || request.expertiseArea().isBlank())) {
+            throw new BadRequestException("Either cropId or expertiseArea must be provided.");
+        }
 
-        // Upsert: if the expert already has this crop, update the type
-        ExpertCropExpertise entry = cropExpertiseRepository
-                .findByExpertProfileIdAndCropId(profile.getId(), crop.getId())
-                .orElse(null);
+        Crop crop = null;
+        if (request.cropId() != null) {
+            crop = cropRepository.findById(request.cropId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Crop not found with id: " + request.cropId()));
+        }
+
+        CropExpertiseType type = request.expertiseType();
+        if (type == null) {
+            type = crop != null ? CropExpertiseType.SECONDARY : CropExpertiseType.AREA;
+        }
+
+        ExpertCropExpertise entry;
+        if (crop != null) {
+            entry = cropExpertiseRepository
+                    .findByExpertProfileIdAndCropId(profile.getId(), crop.getId())
+                    .orElse(null);
+        } else {
+            String areaClean = request.expertiseArea().trim();
+            entry = cropExpertiseRepository
+                    .findByExpertProfileIdAndExpertiseAreaIgnoreCase(profile.getId(), areaClean)
+                    .orElse(null);
+        }
 
         if (entry == null) {
             // New entry — check primary cap before inserting
-            if (request.expertiseType() == CropExpertiseType.PRIMARY) {
+            if (type == CropExpertiseType.PRIMARY) {
                 long currentPrimaryCount = cropExpertiseRepository
                         .countByExpertProfileIdAndExpertiseType(profile.getId(), CropExpertiseType.PRIMARY);
                 if (currentPrimaryCount >= MAX_PRIMARY_CROPS) {
@@ -104,12 +132,18 @@ public class ExpertProfileServiceImpl implements ExpertProfileService {
                     );
                 }
             }
-            entry = new ExpertCropExpertise(profile, crop, request.expertiseType());
-            entry.setVerificationStatus(CropExpertiseVerificationStatus.PENDING);
+            entry = new ExpertCropExpertise();
+            entry.setExpertProfile(profile);
+            entry.setCrop(crop);
+            entry.setExpertiseArea(crop != null && (request.expertiseArea() == null || request.expertiseArea().isBlank())
+                    ? (crop.getCategory() != null ? crop.getCategory().getName() : "Crop Production")
+                    : (request.expertiseArea() != null ? request.expertiseArea().trim() : "General"));
+            entry.setExpertiseType(type);
+            entry.setVerificationStatus(CropExpertiseVerificationStatus.SELF_DECLARED);
+            entry.setSourceType(request.sourceType() != null ? request.sourceType() : ExpertiseSourceType.SELF_DECLARED);
         } else {
-            // Existing entry — check cap only if upgrading to PRIMARY
-            if (request.expertiseType() == CropExpertiseType.PRIMARY
-                    && entry.getExpertiseType() != CropExpertiseType.PRIMARY) {
+            // Existing entry — check cap only if promoting to PRIMARY
+            if (type == CropExpertiseType.PRIMARY && entry.getExpertiseType() != CropExpertiseType.PRIMARY) {
                 long currentPrimaryCount = cropExpertiseRepository
                         .countByExpertProfileIdAndExpertiseType(profile.getId(), CropExpertiseType.PRIMARY);
                 if (currentPrimaryCount >= MAX_PRIMARY_CROPS) {
@@ -119,20 +153,76 @@ public class ExpertProfileServiceImpl implements ExpertProfileService {
                     );
                 }
             }
-            entry.setExpertiseType(request.expertiseType());
-            // Any modification resets verification status to PENDING
-            entry.setVerificationStatus(CropExpertiseVerificationStatus.PENDING);
-            entry.setVerifiedAt(null);
-            entry.setVerifiedBy(null);
+            entry.setExpertiseType(type);
+            if (request.expertiseArea() != null && !request.expertiseArea().isBlank()) {
+                entry.setExpertiseArea(request.expertiseArea().trim());
+            }
+        }
+
+        if (request.expertiseLevel() != null) {
+            entry.setExpertiseLevel(request.expertiseLevel());
+        }
+        if (request.yearsOfExperience() != null) {
+            entry.setYearsOfExperience(request.yearsOfExperience());
+        }
+        if (request.description() != null) {
+            entry.setDescription(request.description());
+        }
+
+        // Optional evidence attachment
+        if (request.evidenceDocumentId() != null) {
+            ExpertDocument doc = documentRepository.findById(request.evidenceDocumentId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Evidence document not found: " + request.evidenceDocumentId()));
+            if (!doc.getExpertProfile().getId().equals(profile.getId())) {
+                throw new BadRequestException("Evidence document does not belong to your profile.");
+            }
+            entry.submitEvidence(doc, request.sourceType());
         }
 
         ExpertCropExpertise saved = cropExpertiseRepository.save(entry);
-        log.info("Expert {} {} crop expertise for crop '{}' (type={})",
-                userId,
-                entry.getId() == null ? "added" : "updated",
-                crop.getName(),
-                request.expertiseType());
+        log.info("Expert {} saved expertise claim id={} (crop={}, area={}, status={})",
+                userId, saved.getId(), crop != null ? crop.getName() : "None", saved.getExpertiseArea(), saved.getVerificationStatus());
         return CropExpertiseResponse.from(saved);
+    }
+
+    @Override
+    @Transactional
+    public CropExpertiseResponse attachEvidenceToExpertise(Long userId, Long expertiseId, AttachExpertiseEvidenceRequest request) {
+        ExpertProfile profile = requireProfile(userId);
+        ExpertCropExpertise entry = cropExpertiseRepository.findById(expertiseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Expertise claim not found with id: " + expertiseId));
+
+        if (!entry.getExpertProfile().getId().equals(profile.getId())) {
+            throw new BadRequestException("Expertise claim does not belong to your profile.");
+        }
+
+        ExpertDocument doc = documentRepository.findById(request.documentId())
+                .orElseThrow(() -> new ResourceNotFoundException("Evidence document not found with id: " + request.documentId()));
+
+        if (!doc.getExpertProfile().getId().equals(profile.getId())) {
+            throw new BadRequestException("Evidence document does not belong to your profile.");
+        }
+
+        entry.submitEvidence(doc, request.sourceType());
+        ExpertCropExpertise saved = cropExpertiseRepository.save(entry);
+        log.info("Expert {} attached evidence docId={} to expertiseId={}", userId, request.documentId(), expertiseId);
+        return CropExpertiseResponse.from(saved);
+    }
+
+    @Override
+    @Transactional
+    public void removeExpertise(Long userId, Long expertiseId) {
+        ExpertProfile profile = requireProfile(userId);
+        ExpertCropExpertise entry = cropExpertiseRepository.findById(expertiseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Expertise claim not found with id: " + expertiseId));
+
+        if (!entry.getExpertProfile().getId().equals(profile.getId())) {
+            throw new BadRequestException("Expertise claim does not belong to your profile.");
+        }
+
+        ensureExpertiseCanBeRemoved(entry);
+        cropExpertiseRepository.delete(entry);
+        log.info("Expert {} removed expertise id={}", userId, expertiseId);
     }
 
     @Override
@@ -143,6 +233,7 @@ public class ExpertProfileServiceImpl implements ExpertProfileService {
                 .findByExpertProfileIdAndCropId(profile.getId(), cropId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Crop expertise not found for cropId=" + cropId + " on your profile."));
+        ensureExpertiseCanBeRemoved(entry);
         cropExpertiseRepository.delete(entry);
         log.info("Expert {} removed crop expertise for cropId={}", userId, cropId);
     }
@@ -274,5 +365,15 @@ public class ExpertProfileServiceImpl implements ExpertProfileService {
         ExpertProfile saved = profileRepository.save(profile);
         log.info("Auto-created ExpertProfile for user {}", userId);
         return saved;
+    }
+
+    private void ensureExpertiseCanBeRemoved(ExpertCropExpertise entry) {
+        CropExpertiseVerificationStatus status = entry.getVerificationStatus() != null
+                ? entry.getVerificationStatus()
+                : CropExpertiseVerificationStatus.SELF_DECLARED;
+
+        if (status == CropExpertiseVerificationStatus.VERIFIED) {
+            throw new BadRequestException("Verified expertise claims cannot be removed. Please contact an administrator.");
+        }
     }
 }

@@ -16,6 +16,7 @@ public record PendingExpertApplicationResponse(
         String fullName,
         String email,
         String phone,
+        String profileImage,
         String designation,
         String organization,
         Integer yearsOfExperience,
@@ -36,11 +37,12 @@ public record PendingExpertApplicationResponse(
         LocalDateTime submittedAt
 ) {
     public static PendingExpertApplicationResponse from(ExpertProfile ep) {
-        String fullName = ep.getUser() != null
-                ? (ep.getUser().getFullName() + " " + ep.getUser()).trim()
+        String fullName = ep.getUser() != null && ep.getUser().getFullName() != null
+                ? ep.getUser().getFullName().trim()
                 : "Unknown Expert";
         String email = ep.getUser() != null ? ep.getUser().getEmail() : null;
         String phone = ep.getUser() != null ? ep.getUser().getPhone() : null;
+        String profileImage = ep.getUser() != null ? ep.getUser().getProfileImage() : null;
 
         List<String> primary = ep.getCropExpertises() == null ? List.of() :
                 ep.getCropExpertises().stream()
@@ -80,6 +82,7 @@ public record PendingExpertApplicationResponse(
                 fullName,
                 email,
                 phone,
+                profileImage,
                 ep.getDesignation(),
                 ep.getOrganization(),
                 ep.getYearsOfExperience(),

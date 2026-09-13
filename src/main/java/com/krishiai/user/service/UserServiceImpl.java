@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final com.krishiai.media.service.CloudinaryService cloudinaryService;
 
     @Override
     @Transactional(readOnly = true)
@@ -78,6 +79,46 @@ public class UserServiceImpl implements UserService {
     public UserResponse updateUserStatus(Long userId, UserStatus status) {
         User user = getUserEntity(userId);
         user.setStatus(status);
+        User saved = userRepository.save(user);
+        return UserResponse.from(saved);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse uploadProfileImage(Long userId, org.springframework.web.multipart.MultipartFile file) {
+        User user = getUserEntity(userId);
+
+        // If user already has an existing Cloudinary image, clean it up
+        if (user.getProfileImagePublicId() != null && !user.getProfileImagePublicId().isBlank()) {
+            try {
+                cloudinaryService.deleteMedia(user.getProfileImagePublicId(), userId, true);
+            } catch (Exception ex) {
+                // Log and continue with new upload so user is not blocked
+                org.slf4j.LoggerFactory.getLogger(UserServiceImpl.class)
+                        .warn("Failed to remove old profile image for user {}: {}", userId, ex.getMessage());
+            }
+        }
+
+        com.krishiai.media.dto.MediaResponse mediaResponse =
+                cloudinaryService.uploadImage(file, com.krishiai.media.constant.CloudinaryFolder.USER_PROFILES, userId);
+
+        user.setProfileImage(mediaResponse.secureUrl());
+        user.setProfileImagePublicId(mediaResponse.publicId());
+        User saved = userRepository.save(user);
+        return UserResponse.from(saved);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse removeProfileImage(Long userId) {
+        User user = getUserEntity(userId);
+
+        if (user.getProfileImagePublicId() != null && !user.getProfileImagePublicId().isBlank()) {
+            cloudinaryService.deleteMedia(user.getProfileImagePublicId(), userId, true);
+        }
+
+        user.setProfileImage(null);
+        user.setProfileImagePublicId(null);
         User saved = userRepository.save(user);
         return UserResponse.from(saved);
     }

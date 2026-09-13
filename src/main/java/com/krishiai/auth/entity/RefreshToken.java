@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 /**
  * Server-side refresh token record for KrishiAI.
  *
- * <p>Only the SHA-256 hash of the raw token is stored — the raw UUID token
+ * <p>Only the SHA-256 hash of the raw token is stored — the raw token
  * is delivered to the client only once and is never persisted.</p>
  *
  * <p>Token rotation is applied on every successful refresh:
@@ -35,7 +35,7 @@ public class RefreshToken {
     private Long id;
 
     /**
-     * SHA-256 hex digest of the raw UUID refresh token delivered to the client.
+     * SHA-256 hex digest of the raw refresh token delivered to the client.
      */
     @Column(name = "token_hash", nullable = false, unique = true, length = 64)
     private String tokenHash;

@@ -21,6 +21,33 @@ public class AdminUserController {
 
     private final AdminUserService adminUserService;
 
+    @GetMapping
+    public ResponseEntity<ApiResponse<com.krishiai.common.response.PageResponse<com.krishiai.user.dto.UserResponse>>> getAllUsers(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) com.krishiai.user.entity.UserRole role,
+            @RequestParam(required = false) UserStatus status,
+            @org.springframework.data.web.PageableDefault(size = 20, sort = "createdAt", direction = org.springframework.data.domain.Sort.Direction.DESC) org.springframework.data.domain.Pageable pageable
+    ) {
+        com.krishiai.common.response.PageResponse<com.krishiai.user.dto.UserResponse> response = adminUserService.getAllUsers(search, role, status, pageable);
+        return ResponseEntity.ok(ApiResponse.success("Users retrieved successfully", response));
+    }
+
+    @GetMapping("/{userId}")
+    public ResponseEntity<ApiResponse<com.krishiai.user.dto.UserResponse>> getUserById(@PathVariable Long userId) {
+        com.krishiai.user.dto.UserResponse response = adminUserService.getUserById(userId);
+        return ResponseEntity.ok(ApiResponse.success("User retrieved successfully", response));
+    }
+
+    @PatchMapping("/{userId}/role")
+    public ResponseEntity<ApiResponse<com.krishiai.user.dto.UserResponse>> updateUserRole(
+            @PathVariable Long userId,
+            @Valid @RequestBody com.krishiai.admin.dto.UpdateUserRoleRequest request,
+            @AuthenticationPrincipal CustomUserDetails principal) {
+        Long adminId = (principal != null) ? principal.getUserId() : null;
+        com.krishiai.user.dto.UserResponse response = adminUserService.updateUserRole(userId, request, adminId);
+        return ResponseEntity.ok(ApiResponse.success("User role updated successfully", response));
+    }
+
     @PatchMapping("/{userId}/status")
     public ResponseEntity<ApiResponse<UserStatusResponse>> updateUserStatus(
             @PathVariable Long userId,

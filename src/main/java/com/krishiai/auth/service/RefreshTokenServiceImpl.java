@@ -10,21 +10,24 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.HexFormat;
-import java.util.UUID;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class RefreshTokenServiceImpl implements RefreshTokenService {
 
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
     private final RefreshTokenRepository refreshTokenRepository;
 
-    @Value("${app.jwt.refresh-expiration-ms:2592000000}")
-    private long refreshExpirationMs; // 30 days default
+    @Value("${app.jwt.refresh-expiration-ms:604800000}")
+    private long refreshExpirationMs; // 7 days default
 
     @Override
     @Transactional
@@ -32,7 +35,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         // Revoke any existing active tokens for this user (single active token policy)
         refreshTokenRepository.revokeAllByUserId(userId);
 
-        String rawToken = UUID.randomUUID().toString();
+        String rawToken = generateRawToken();
         String hash = sha256(rawToken);
 
         LocalDateTime expiresAt = LocalDateTime.now()
@@ -48,6 +51,10 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     @Override
     @Transactional(readOnly = true)
     public RefreshToken validateRefreshToken(String rawToken) {
+        if (rawToken == null || rawToken.isBlank()) {
+            throw new UnauthorizedException("Refresh token is required");
+        }
+
         String hash = sha256(rawToken);
         RefreshToken token = refreshTokenRepository.findByTokenHash(hash)
                 .orElseThrow(() -> new UnauthorizedException("Invalid or unknown refresh token"));
@@ -64,6 +71,10 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     @Override
     @Transactional
     public void revokeRefreshToken(String rawToken) {
+        if (rawToken == null || rawToken.isBlank()) {
+            return;
+        }
+
         String hash = sha256(rawToken);
         refreshTokenRepository.findByTokenHash(hash).ifPresent(token -> {
             token.revoke();
@@ -80,6 +91,12 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private static String generateRawToken() {
+        byte[] tokenBytes = new byte[32];
+        SECURE_RANDOM.nextBytes(tokenBytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes);
+    }
 
     private static String sha256(String input) {
         try {

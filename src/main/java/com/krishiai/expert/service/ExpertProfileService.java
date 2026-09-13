@@ -3,6 +3,8 @@ package com.krishiai.expert.service;
 import com.krishiai.expert.dto.*;
 import com.krishiai.expert.entity.ExpertProfile;
 
+import java.util.List;
+
 public interface ExpertProfileService {
 
     /**
@@ -23,76 +25,67 @@ public interface ExpertProfileService {
     ExpertProfileResponse updateMyProfile(Long userId, UpdateExpertProfileRequest request);
 
     /**
-     * Adds a crop expertise to the expert's profile.
+     * Adds or updates a crop or domain expertise entry.
      *
      * <p>Business rules enforced:
      * <ul>
      *   <li>At most 3 PRIMARY crops per expert.</li>
-     *   <li>A crop cannot be added twice; if already present, its type is updated.</li>
+     *   <li>Does NOT change the expert's professional verification status.</li>
+     *   <li>Expertise starts as SELF_DECLARED, or EVIDENCE_SUBMITTED if evidence document is provided.</li>
+     *   <li>Client cannot forge verification status.</li>
      * </ul>
-     *
-     * @param userId  the authenticated expert's user ID
-     * @param request crop ID and expertise type
-     * @return the created or updated crop expertise entry
      */
     CropExpertiseResponse addOrUpdateCropExpertise(Long userId, AddCropExpertiseRequest request);
 
     /**
-     * Removes a crop expertise from the expert's profile.
-     *
-     * @param userId the authenticated expert's user ID
-     * @param cropId the crop to remove
+     * Attaches supporting evidence to an existing expertise claim.
+     * Transitions verification status to EVIDENCE_SUBMITTED.
+     */
+    CropExpertiseResponse attachEvidenceToExpertise(Long userId, Long expertiseId, AttachExpertiseEvidenceRequest request);
+
+    /**
+     * Removes an expertise entry by its unique expertise ID.
+     * Only unverified claims or claims owned by this expert can be deleted.
+     */
+    void removeExpertise(Long userId, Long expertiseId);
+
+    /**
+     * Removes a crop expertise from the expert's profile by crop ID (backward compatibility).
      */
     void removeCropExpertise(Long userId, Long cropId);
 
     /**
+     * Retrieves all expertise claims for the authenticated expert.
+     */
+    List<CropExpertiseResponse> getMyExpertises(Long userId);
+
+    /**
      * Adds a specialization to the expert's profile.
-     *
-     * @param userId           the authenticated expert's user ID
-     * @param specializationId the specialization to add
-     * @return the created specialization link
      */
     SpecializationResponse addSpecialization(Long userId, Long specializationId);
 
     /**
      * Removes a specialization from the expert's profile.
-     *
-     * @param userId           the authenticated expert's user ID
-     * @param specializationId the specialization to remove
      */
     void removeSpecialization(Long userId, Long specializationId);
 
     /**
      * Adds a location to the expert's service area.
-     *
-     * @param userId     the authenticated expert's user ID
-     * @param locationId the location to add
-     * @return the created location link
      */
     LocationResponse addLocation(Long userId, Long locationId);
 
     /**
      * Removes a location from the expert's service area.
-     *
-     * @param userId     the authenticated expert's user ID
-     * @param locationId the location to remove
      */
     void removeLocation(Long userId, Long locationId);
 
     /**
-     * Submits the expert's verification application for admin review.
-     *
-     * @param userId the authenticated expert's user ID
-     * @return updated profile with applicationStatus = SUBMITTED
+     * Submits the expert's professional verification application for admin review.
      */
     ExpertProfileResponse submitApplication(Long userId);
 
     /**
      * Internal helper: ensures an ExpertProfile row exists for the given User.
-     * Used at registration time to create the profile immediately.
-     *
-     * @param userId the new expert's user ID
-     * @return the (possibly newly created) ExpertProfile
      */
     ExpertProfile ensureProfileExists(Long userId);
 
@@ -104,5 +97,5 @@ public interface ExpertProfileService {
     /**
      * Retrieves all documents uploaded by this expert.
      */
-    java.util.List<ExpertDocumentResponse> getDocuments(Long userId);
+    List<ExpertDocumentResponse> getDocuments(Long userId);
 }

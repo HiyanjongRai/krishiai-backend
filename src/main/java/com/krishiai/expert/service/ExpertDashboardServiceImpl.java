@@ -12,7 +12,8 @@ import com.krishiai.user.entity.UserRole;
 import com.krishiai.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 @RequiredArgsConstructor
 public class ExpertDashboardServiceImpl implements ExpertDashboardService {
+
+    private static final int FARMER_SAMPLE_LIMIT = 100;
 
     private final ExpertProfileRepository expertProfileRepository;
     private final ExpertProfileService expertProfileService;
@@ -52,7 +55,10 @@ public class ExpertDashboardServiceImpl implements ExpertDashboardService {
         int completion = calculateCompletionPercentage(profile);
 
         // Fetch real registered farmers
-        List<User> farmers = userRepository.findByRole(UserRole.ROLE_FARMER, Pageable.unpaged()).getContent();
+        List<User> farmers = userRepository.findByRole(
+                UserRole.ROLE_FARMER,
+                PageRequest.of(0, FARMER_SAMPLE_LIMIT, Sort.by(Sort.Direction.DESC, "createdAt"))
+        ).getContent();
 
         // Get crops assigned to this expert or default popular crops
         List<Crop> activeCrops = cropRepository.findByActiveTrueOrderByNameAsc();

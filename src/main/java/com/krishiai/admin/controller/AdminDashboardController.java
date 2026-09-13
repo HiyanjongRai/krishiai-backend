@@ -114,4 +114,20 @@ public class AdminDashboardController {
                 profileId, cropId, principal.getUserId(), principal.getUsername());
         return ResponseEntity.ok(ApiResponse.success("Crop expertise rejected", response));
     }
+
+    @PostMapping("/expertise-verifications/batch")
+    public ResponseEntity<ApiResponse<com.krishiai.admin.dto.BatchExpertiseVerificationResponse>> batchVerifyExpertises(
+            @Valid @RequestBody com.krishiai.admin.dto.BatchExpertiseVerificationRequest request,
+            @AuthenticationPrincipal CustomUserDetails principal) {
+        com.krishiai.admin.dto.BatchExpertiseVerificationResponse response = adminDashboardService.batchVerifyExpertises(
+                request, principal.getUserId(), principal.getUsername());
+        return ResponseEntity.ok(ApiResponse.success("Batch expertise verification completed", response));
+    }
+
+    @GetMapping("/expertise-verifications")
+    public ResponseEntity<ApiResponse<List<com.krishiai.admin.dto.AdminExpertiseVerificationItemResponse>>> getExpertiseVerifications(
+            @RequestParam(required = false) String status) {
+        List<com.krishiai.admin.dto.AdminExpertiseVerificationItemResponse> response = adminDashboardService.getExpertiseVerifications(status);
+        return ResponseEntity.ok(ApiResponse.success("Expertise verifications retrieved successfully", response));
+    }
 }

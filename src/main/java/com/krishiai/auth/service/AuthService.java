@@ -41,4 +41,14 @@ public interface AuthService {
      * @param request current + new password
      */
     void changePassword(Long userId, ChangePasswordRequest request);
+
+    /**
+     * Request a password reset email/token. Always returns generic message to avoid email enumeration.
+     */
+    void forgotPassword(com.krishiai.auth.dto.ForgotPasswordRequest request);
+
+    /**
+     * Reset password using a valid single-use reset token. Revokes all active refresh tokens.
+     */
+    void resetPassword(com.krishiai.auth.dto.ResetPasswordRequest request);
 }

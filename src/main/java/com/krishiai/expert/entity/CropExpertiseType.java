@@ -1,10 +1,10 @@
 package com.krishiai.expert.entity;
 
 /**
- * Classifies how significant a crop is to the expert's practice.
+ * Classifies how significant a crop or domain is to the expert's practice.
  *
  * <p>Business rule: an expert may have at most <strong>3 PRIMARY</strong> crops.
- * There is no limit on SECONDARY crops.
+ * There is no limit on SECONDARY crops or broad AREA expertises.
  */
 public enum CropExpertiseType {
 
@@ -17,5 +17,10 @@ public enum CropExpertiseType {
     /**
      * Supporting crop — the expert has working knowledge but it is not their main focus.
      */
-    SECONDARY
+    SECONDARY,
+
+    /**
+     * Broader agricultural domain (e.g. Pest Management, Soil Management, Irrigation).
+     */
+    AREA
 }

@@ -162,13 +162,17 @@ public class ExpertProfile extends BaseEntity {
     }
 
     /**
-     * Admin begins review: moves SUBMITTED or ADDITIONAL_INFORMATION_REQUIRED to UNDER_REVIEW.
+     * Admin begins review: moves SUBMITTED, DRAFT, or ADDITIONAL_INFORMATION_REQUIRED to UNDER_REVIEW.
      */
     public void startReview() {
         if (this.applicationStatus != ExpertApplicationStatus.SUBMITTED
-                && this.applicationStatus != ExpertApplicationStatus.ADDITIONAL_INFORMATION_REQUIRED) {
+                && this.applicationStatus != ExpertApplicationStatus.ADDITIONAL_INFORMATION_REQUIRED
+                && this.applicationStatus != ExpertApplicationStatus.DRAFT) {
             throw new IllegalStateException(
-                    "Review can only be started for SUBMITTED or ADDITIONAL_INFORMATION_REQUIRED applications. Current: " + applicationStatus);
+                    "Review can only be started for SUBMITTED, DRAFT, or ADDITIONAL_INFORMATION_REQUIRED applications. Current: " + applicationStatus);
+        }
+        if (this.submittedAt == null) {
+            this.submittedAt = LocalDateTime.now();
         }
         this.applicationStatus = ExpertApplicationStatus.UNDER_REVIEW;
     }
@@ -178,9 +182,10 @@ public class ExpertProfile extends BaseEntity {
      */
     public void requestAdditionalInfo(String notes) {
         if (this.applicationStatus != ExpertApplicationStatus.UNDER_REVIEW
-                && this.applicationStatus != ExpertApplicationStatus.SUBMITTED) {
+                && this.applicationStatus != ExpertApplicationStatus.SUBMITTED
+                && this.applicationStatus != ExpertApplicationStatus.DRAFT) {
             throw new IllegalStateException(
-                    "Additional information can only be requested for applications under review or submitted. Current: " + applicationStatus);
+                    "Additional information can only be requested for applications under review, submitted, or draft. Current: " + applicationStatus);
         }
         this.applicationStatus = ExpertApplicationStatus.ADDITIONAL_INFORMATION_REQUIRED;
         this.reviewedAt = LocalDateTime.now();
@@ -208,7 +213,8 @@ public class ExpertProfile extends BaseEntity {
      */
     public void rejectApplication(String notes) {
         if (this.applicationStatus != ExpertApplicationStatus.UNDER_REVIEW
-                && this.applicationStatus != ExpertApplicationStatus.SUBMITTED) {
+                && this.applicationStatus != ExpertApplicationStatus.SUBMITTED
+                && this.applicationStatus != ExpertApplicationStatus.DRAFT) {
             throw new IllegalStateException(
                     "Application cannot be rejected from " + applicationStatus + " state.");
         }

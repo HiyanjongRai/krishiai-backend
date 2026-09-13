@@ -35,4 +35,21 @@ public class UserController {
         UserResponse response = userService.updateProfile(userDetails.getUserId(), request);
         return ResponseEntity.ok(ApiResponse.success("Profile updated successfully", response));
     }
+
+    @PostMapping(value = "/me/profile-image", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<UserResponse>> uploadProfileImage(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        UserResponse response = userService.uploadProfileImage(userDetails.getUserId(), file);
+        return ResponseEntity.ok(ApiResponse.success("Profile image uploaded and updated successfully", response));
+    }
+
+    @DeleteMapping("/me/profile-image")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<UserResponse>> removeProfileImage(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        UserResponse response = userService.removeProfileImage(userDetails.getUserId());
+        return ResponseEntity.ok(ApiResponse.success("Profile image removed successfully", response));
+    }
 }

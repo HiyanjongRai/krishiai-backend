@@ -10,6 +10,7 @@ public record FarmerSummaryResponse(
         String phone,
         String status,
         boolean emailVerified,
+        String profileImage,
         LocalDateTime createdAt
 ) {
     public static FarmerSummaryResponse from(User user) {
@@ -20,6 +21,7 @@ public record FarmerSummaryResponse(
                 user.getPhone(),
                 user.getStatus() != null ? user.getStatus().name() : "ACTIVE",
                 user.isEmailVerified(),
+                user.getProfileImage(),
                 user.getCreatedAt()
         );
     }

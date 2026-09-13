@@ -14,4 +14,19 @@ public interface AdminUserService {
      * @return updated user status summary
      */
     UserStatusResponse updateUserStatus(Long targetUserId, UpdateUserStatusRequest request, Long currentAdminId);
+
+    com.krishiai.common.response.PageResponse<com.krishiai.user.dto.UserResponse> getAllUsers(
+            String search,
+            com.krishiai.user.entity.UserRole role,
+            com.krishiai.user.entity.UserStatus status,
+            org.springframework.data.domain.Pageable pageable
+    );
+
+    com.krishiai.user.dto.UserResponse getUserById(Long userId);
+
+    com.krishiai.user.dto.UserResponse updateUserRole(
+            Long targetUserId,
+            com.krishiai.admin.dto.UpdateUserRoleRequest request,
+            Long currentAdminId
+    );
 }

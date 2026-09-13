@@ -18,4 +18,10 @@ public interface LocationService {
 
     /** Returns all active locations (full flat list). */
     List<LocationResponse> getAllActiveLocations();
+
+    /** Returns details for a single location by ID. Throws ResourceNotFoundException if missing. */
+    LocationResponse getLocationById(Long id);
+
+    /** Returns the underlying Location entity. Throws ResourceNotFoundException if missing. */
+    com.krishiai.location.entity.Location getLocationEntity(Long id);
 }

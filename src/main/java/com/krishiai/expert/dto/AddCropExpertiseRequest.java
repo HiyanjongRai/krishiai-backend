@@ -1,15 +1,29 @@
 package com.krishiai.expert.dto;
 
 import com.krishiai.expert.entity.CropExpertiseType;
-import jakarta.validation.constraints.NotNull;
+import com.krishiai.expert.entity.ExpertiseLevel;
+import com.krishiai.expert.entity.ExpertiseSourceType;
+import jakarta.validation.constraints.Size;
 
 /**
- * Request body to add or update a crop expertise entry.
+ * Request body to add or update an expertise claim (crop or agricultural domain).
  */
 public record AddCropExpertiseRequest(
-        @NotNull(message = "Crop ID is required")
         Long cropId,
 
-        @NotNull(message = "Expertise type is required (PRIMARY or SECONDARY)")
-        CropExpertiseType expertiseType
+        @Size(max = 120, message = "Expertise area name cannot exceed 120 characters")
+        String expertiseArea,
+
+        CropExpertiseType expertiseType,
+
+        ExpertiseLevel expertiseLevel,
+
+        Integer yearsOfExperience,
+
+        @Size(max = 1000, message = "Description cannot exceed 1000 characters")
+        String description,
+
+        ExpertiseSourceType sourceType,
+
+        Long evidenceDocumentId
 ) {}

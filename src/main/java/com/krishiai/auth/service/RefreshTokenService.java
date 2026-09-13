@@ -6,7 +6,7 @@ import com.krishiai.auth.entity.RefreshToken;
  * Manages the lifecycle of server-side refresh tokens for KrishiAI.
  *
  * <p>Only a SHA-256 hash of each token is stored in the database.
- * The raw token (a UUID) is returned to the caller exactly once and is never persisted.</p>
+ * The raw token is returned to the caller exactly once and is never persisted.</p>
  */
 public interface RefreshTokenService {
 

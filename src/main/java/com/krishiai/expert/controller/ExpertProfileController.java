@@ -54,11 +54,23 @@ public class ExpertProfileController {
         return ResponseEntity.ok(ApiResponse.success("Profile updated successfully", response));
     }
 
-    // ─── Crop Expertise ───────────────────────────────────────────────────────
+    // ─── Crop & Domain Expertise ───────────────────────────────────────────────
+
+    /**
+     * GET /api/v1/expert/profile/crops
+     * List all crop and domain expertise claims for the authenticated expert.
+     */
+    @GetMapping("/crops")
+    public ResponseEntity<ApiResponse<java.util.List<CropExpertiseResponse>>> getMyExpertises(
+            @AuthenticationPrincipal CustomUserDetails principal) {
+
+        java.util.List<CropExpertiseResponse> response = expertProfileService.getMyExpertises(principal.getUserId());
+        return ResponseEntity.ok(ApiResponse.success("Expertise claims retrieved successfully", response));
+    }
 
     /**
      * POST /api/v1/expert/profile/crops
-     * Add or update a crop expertise (upsert). Enforces the 3-primary-crop rule.
+     * Add or update a crop or domain expertise claim.
      */
     @PostMapping("/crops")
     public ResponseEntity<ApiResponse<CropExpertiseResponse>> addCrop(
@@ -71,8 +83,36 @@ public class ExpertProfileController {
     }
 
     /**
+     * POST /api/v1/expert/profile/expertises/{expertiseId}/evidence
+     * Attach verification evidence to an existing expertise claim.
+     */
+    @PostMapping("/expertises/{expertiseId}/evidence")
+    public ResponseEntity<ApiResponse<CropExpertiseResponse>> attachEvidence(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @PathVariable Long expertiseId,
+            @Valid @RequestBody AttachExpertiseEvidenceRequest request) {
+
+        CropExpertiseResponse response = expertProfileService
+                .attachEvidenceToExpertise(principal.getUserId(), expertiseId, request);
+        return ResponseEntity.ok(ApiResponse.success("Supporting evidence submitted successfully", response));
+    }
+
+    /**
+     * DELETE /api/v1/expert/profile/expertises/{expertiseId}
+     * Remove an expertise claim by expertise ID.
+     */
+    @DeleteMapping("/expertises/{expertiseId}")
+    public ResponseEntity<ApiResponse<Void>> removeExpertise(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @PathVariable Long expertiseId) {
+
+        expertProfileService.removeExpertise(principal.getUserId(), expertiseId);
+        return ResponseEntity.ok(ApiResponse.success("Expertise claim removed", null));
+    }
+
+    /**
      * DELETE /api/v1/expert/profile/crops/{cropId}
-     * Remove a crop from the expert's profile.
+     * Remove a crop from the expert's profile by crop ID (backward compatibility).
      */
     @DeleteMapping("/crops/{cropId}")
     public ResponseEntity<ApiResponse<Void>> removeCrop(

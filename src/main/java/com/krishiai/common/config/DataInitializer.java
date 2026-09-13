@@ -78,6 +78,20 @@ public class DataInitializer implements CommandLineRunner {
         } catch (Exception e) {
             log.warn("Could not update users_status_check constraint: {}", e.getMessage());
         }
+
+        try {
+            jdbcTemplate.execute("ALTER TABLE expert_crop_expertises ALTER COLUMN crop_id DROP NOT NULL");
+            jdbcTemplate.execute("ALTER TABLE expert_crop_expertises ALTER COLUMN verification_status TYPE VARCHAR(50)");
+            jdbcTemplate.execute("ALTER TABLE expert_crop_expertises DROP CONSTRAINT IF EXISTS expert_crop_expertises_verification_status_check");
+            jdbcTemplate.execute("ALTER TABLE expert_crop_expertises DROP CONSTRAINT IF EXISTS uq_ece_profile_crop");
+            jdbcTemplate.execute("UPDATE expert_crop_expertises SET verification_status = 'SELF_DECLARED' WHERE verification_status IN ('PENDING', 'UNVERIFIED') OR verification_status IS NULL");
+            jdbcTemplate.execute("UPDATE expert_crop_expertises SET source_type = 'SELF_DECLARED' WHERE source_type IS NULL");
+            jdbcTemplate.execute("UPDATE expert_crop_expertises SET verification_method = 'NONE' WHERE verification_method IS NULL");
+            jdbcTemplate.execute("UPDATE expert_crop_expertises SET expertise_level = 'INTERMEDIATE' WHERE expertise_level IS NULL");
+            log.info("Successfully migrated expert_crop_expertises schema and preserved existing data");
+        } catch (Exception e) {
+            log.warn("Could not alter expert_crop_expertises table (may not exist yet or already updated): {}", e.getMessage());
+        }
     }
 
     private void seedAdminUser() {

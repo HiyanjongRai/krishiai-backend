@@ -55,6 +55,19 @@ public class ExpertDocument {
     @Column(name = "uploaded_at", nullable = false)
     private LocalDateTime uploadedAt = LocalDateTime.now();
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 30)
+    private ExpertDocumentStatus status = ExpertDocumentStatus.PENDING;
+
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
+
+    @Column(name = "verified_at")
+    private LocalDateTime verifiedAt;
+
+    @Column(name = "reviewed_by_admin_id")
+    private Long reviewedByAdminId;
+
     public ExpertDocument(ExpertProfile expertProfile, String documentType, String title,
                           String fileName, String fileType, String fileSize, String fileUrl) {
         this.expertProfile = expertProfile;

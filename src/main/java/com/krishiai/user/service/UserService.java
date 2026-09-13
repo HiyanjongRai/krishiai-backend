@@ -21,4 +21,8 @@ public interface UserService {
     Page<UserResponse> getUsersByRole(UserRole role, Pageable pageable);
 
     UserResponse updateUserStatus(Long userId, UserStatus status);
+
+    UserResponse uploadProfileImage(Long userId, org.springframework.web.multipart.MultipartFile file);
+
+    UserResponse removeProfileImage(Long userId);
 }

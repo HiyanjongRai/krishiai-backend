@@ -1,0 +1,53 @@
+-- -- V2__redesign_expertise_verification.sql
+-- -- Non-destructive migration for Redesigned Expert Expertise Verification System
+--
+-- -- 1. Allow nullable crop_id on expert_crop_expertises for broad agricultural domains (e.g. Pest Management, Soil Management)
+-- ALTER TABLE expert_crop_expertises ALTER COLUMN crop_id DROP NOT NULL;
+--
+-- -- 2. Ensure verification_status is VARCHAR(50) to accommodate new enum names
+-- ALTER TABLE expert_crop_expertises ALTER COLUMN verification_status TYPE VARCHAR(50);
+--
+-- -- 3. Add new columns for comprehensive expertise claims
+-- ALTER TABLE expert_crop_expertises ADD COLUMN IF NOT EXISTS expertise_area VARCHAR(120);
+-- ALTER TABLE expert_crop_expertises ADD COLUMN IF NOT EXISTS expertise_level VARCHAR(30) DEFAULT 'INTERMEDIATE';
+-- ALTER TABLE expert_crop_expertises ADD COLUMN IF NOT EXISTS years_of_experience INTEGER;
+-- ALTER TABLE expert_crop_expertises ADD COLUMN IF NOT EXISTS description VARCHAR(1000);
+-- ALTER TABLE expert_crop_expertises ADD COLUMN IF NOT EXISTS source_type VARCHAR(30) DEFAULT 'SELF_DECLARED';
+-- ALTER TABLE expert_crop_expertises ADD COLUMN IF NOT EXISTS evidence_document_id BIGINT;
+-- ALTER TABLE expert_crop_expertises ADD COLUMN IF NOT EXISTS verification_method VARCHAR(40) DEFAULT 'NONE';
+-- ALTER TABLE expert_crop_expertises ADD COLUMN IF NOT EXISTS rejection_reason VARCHAR(500);
+-- ALTER TABLE expert_crop_expertises ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+-- ALTER TABLE expert_crop_expertises ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+--
+-- -- 4. Foreign key for evidence document
+-- DO $$
+-- BEGIN
+--     IF NOT EXISTS (
+--         SELECT 1 FROM pg_constraint WHERE conname = 'fk_ece_evidence_document'
+--     ) THEN
+--         ALTER TABLE expert_crop_expertises
+--         ADD CONSTRAINT fk_ece_evidence_document
+--         FOREIGN KEY (evidence_document_id) REFERENCES expert_documents(id) ON DELETE SET NULL;
+--     END IF;
+-- END $$;
+--
+-- -- 5. Drop legacy unique constraint if present to allow multiple domains
+-- ALTER TABLE expert_crop_expertises DROP CONSTRAINT IF EXISTS uq_ece_profile_crop;
+-- ALTER TABLE expert_crop_expertises DROP CONSTRAINT IF EXISTS expert_crop_expertises_verification_status_check;
+--
+-- -- 6. Migrate existing legacy data safely
+-- UPDATE expert_crop_expertises
+-- SET verification_status = 'SELF_DECLARED'
+-- WHERE verification_status IN ('PENDING', 'UNVERIFIED') OR verification_status IS NULL;
+--
+-- UPDATE expert_crop_expertises
+-- SET source_type = 'SELF_DECLARED'
+-- WHERE source_type IS NULL;
+--
+-- UPDATE expert_crop_expertises
+-- SET verification_method = 'NONE'
+-- WHERE verification_method IS NULL;
+--
+-- UPDATE expert_crop_expertises
+-- SET expertise_level = 'INTERMEDIATE'
+-- WHERE expertise_level IS NULL;

@@ -2,6 +2,7 @@ package com.krishiai.expert.repository;
 
 import com.krishiai.expert.entity.ExpertApplicationStatus;
 import com.krishiai.expert.entity.ExpertProfile;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -41,6 +42,14 @@ public interface ExpertProfileRepository extends JpaRepository<ExpertProfile, Lo
             """)
     List<ExpertProfile> findPendingApplicationsWithDetails(@Param("status") ExpertApplicationStatus status);
 
+    @Query("""
+            SELECT ep FROM ExpertProfile ep
+            JOIN FETCH ep.user u
+            WHERE ep.applicationStatus = :status
+            ORDER BY ep.submittedAt DESC
+            """)
+    List<ExpertProfile> findPendingApplicationsWithDetails(@Param("status") ExpertApplicationStatus status, Pageable pageable);
+
     /**
      * Fetch all expert profiles with user details, ordered by most recently created.
      */
@@ -50,6 +59,13 @@ public interface ExpertProfileRepository extends JpaRepository<ExpertProfile, Lo
             ORDER BY u.createdAt DESC
             """)
     List<ExpertProfile> findAllWithUserDetails();
+
+    @Query("""
+            SELECT ep FROM ExpertProfile ep
+            JOIN FETCH ep.user u
+            ORDER BY u.createdAt DESC
+            """)
+    List<ExpertProfile> findAllWithUserDetails(Pageable pageable);
 
     /**
      * Fetch a single profile by its own ID, with user eagerly loaded.
@@ -76,6 +92,18 @@ public interface ExpertProfileRepository extends JpaRepository<ExpertProfile, Lo
             """)
     List<ExpertProfile> findVerifiedExpertsByCropName(@Param("cropName") String cropName);
 
+    @Query("""
+            SELECT DISTINCT ep FROM ExpertProfile ep
+            JOIN FETCH ep.user u
+            JOIN ep.cropExpertises ece
+            JOIN ece.crop c
+            WHERE u.status = com.krishiai.user.entity.UserStatus.ACTIVE
+              AND ep.verificationStatus = com.krishiai.expert.entity.ExpertVerificationStatus.VERIFIED
+              AND ece.verificationStatus = com.krishiai.expert.entity.CropExpertiseVerificationStatus.VERIFIED
+              AND LOWER(c.name) = LOWER(:cropName)
+            """)
+    List<ExpertProfile> findVerifiedExpertsByCropName(@Param("cropName") String cropName, Pageable pageable);
+
     /**
      * Finds all active, verified experts.
      */
@@ -86,4 +114,29 @@ public interface ExpertProfileRepository extends JpaRepository<ExpertProfile, Lo
               AND ep.verificationStatus = com.krishiai.expert.entity.ExpertVerificationStatus.VERIFIED
             """)
     List<ExpertProfile> findAllVerifiedExperts();
+
+    @Query("""
+            SELECT DISTINCT ep FROM ExpertProfile ep
+            JOIN FETCH ep.user u
+            WHERE u.status = com.krishiai.user.entity.UserStatus.ACTIVE
+              AND ep.verificationStatus = com.krishiai.expert.entity.ExpertVerificationStatus.VERIFIED
+            """)
+    List<ExpertProfile> findAllVerifiedExperts(Pageable pageable);
+
+    /**
+     * Finds active experts whose claimed crops or agricultural areas match the search query.
+     */
+    @Query("""
+            SELECT DISTINCT ep FROM ExpertProfile ep
+            JOIN FETCH ep.user u
+            LEFT JOIN FETCH ep.cropExpertises ece
+            LEFT JOIN FETCH ece.crop c
+            WHERE u.status = com.krishiai.user.entity.UserStatus.ACTIVE
+              AND ep.verificationStatus = com.krishiai.expert.entity.ExpertVerificationStatus.VERIFIED
+              AND (
+                  (c IS NOT NULL AND LOWER(c.name) LIKE LOWER(CONCAT('%', :query, '%')))
+                  OR (ece.expertiseArea IS NOT NULL AND LOWER(ece.expertiseArea) LIKE LOWER(CONCAT('%', :query, '%')))
+              )
+            """)
+    List<ExpertProfile> searchExpertsByCropOrDomain(@Param("query") String query, Pageable pageable);
 }

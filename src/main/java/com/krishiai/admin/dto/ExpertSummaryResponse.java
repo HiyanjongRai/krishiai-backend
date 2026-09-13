@@ -14,6 +14,7 @@ public record ExpertSummaryResponse(
         String fullName,
         String email,
         String phone,
+        String profileImage,
         String designation,
         String organization,
         Integer yearsOfExperience,
@@ -33,9 +34,10 @@ public record ExpertSummaryResponse(
         LocalDateTime submittedAt
 ) {
     public static ExpertSummaryResponse from(ExpertProfile ep) {
-        String fullName = ep.getUser() != null
-                ? (ep.getUser().getFullName() + " " + ep.getUser()).trim()
+        String fullName = ep.getUser() != null && ep.getUser().getFullName() != null
+                ? ep.getUser().getFullName().trim()
                 : "Unknown Expert";
+        String profileImage = ep.getUser() != null ? ep.getUser().getProfileImage() : null;
 
         List<String> primaryCrops = ep.getCropExpertises() == null ? List.of() :
                 ep.getCropExpertises().stream()
@@ -79,6 +81,7 @@ public record ExpertSummaryResponse(
                 fullName,
                 ep.getUser() != null ? ep.getUser().getEmail() : null,
                 ep.getUser() != null ? ep.getUser().getPhone() : null,
+                profileImage,
                 ep.getDesignation(),
                 ep.getOrganization(),
                 ep.getYearsOfExperience(),

@@ -12,12 +12,18 @@ public record UserResponse(
         String fullName,
         String phone,
         String profileImage,
+        String profileImagePublicId,
         UserRole role,
         UserStatus status,
         boolean emailVerified,
         LocalDateTime lastLoginAt,
         LocalDateTime createdAt
 ) {
+    public UserResponse(Long id, String email, String fullName, String phone, String profileImage,
+                        UserRole role, UserStatus status, boolean emailVerified, LocalDateTime lastLoginAt, LocalDateTime createdAt) {
+        this(id, email, fullName, phone, profileImage, null, role, status, emailVerified, lastLoginAt, createdAt);
+    }
+
     public static UserResponse from(User user) {
         return new UserResponse(
                 user.getId(),
@@ -25,6 +31,7 @@ public record UserResponse(
                 user.getFullName(),
                 user.getPhone(),
                 user.getProfileImage(),
+                user.getProfileImagePublicId(),
                 user.getRole(),
                 user.getStatus(),
                 user.isEmailVerified(),
