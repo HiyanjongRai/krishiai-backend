@@ -7,8 +7,7 @@ services:
     runtime: docker
     region: oregon
     dockerfilePath: ./Dockerfile
-    buildCommand: "docker build -t krishiai-api ."
-    multiStage: true
+
     autoDeploy: true
 
     # Build settings

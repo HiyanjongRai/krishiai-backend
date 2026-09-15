@@ -1,56 +1,50 @@
-# Dockerfile
-# Multi-stage build for optimized production deployment
+# ============================================================
+# KrishiAI - Production Dockerfile
+# Spring Boot + Java 26 + Maven
+# ============================================================
 
-# ─── Build Stage ───────────────────────────────────────────────────────────
-FROM maven:3.9-eclipse-temurin-21 AS builder
+# ============================================================
+# BUILD STAGE
+# ============================================================
+FROM maven:3.9-eclipse-temurin-26 AS builder
 
 WORKDIR /app
 
-# Copy Maven files
+# Copy Maven configuration first for better Docker layer caching
 COPY pom.xml .
-COPY .mvn .mvn
-COPY mvnw .
 
-# Download dependencies (cached layer)
-RUN chmod +x mvnw && ./mvnw dependency:go-offline -B
+# Download dependencies
+RUN mvn dependency:go-offline -B
 
-# Copy source code
+# Copy application source
 COPY src ./src
 
-# Build the application
-RUN ./mvnw clean package -DskipTests -B
+# Build production JAR
+RUN mvn clean package -DskipTests -B
 
-# ─── Runtime Stage ─────────────────────────────────────────────────────────
-FROM eclipse-temurin:21-jre-alpine
+
+# ============================================================
+# RUNTIME STAGE
+# ============================================================
+FROM eclipse-temurin:26-jre
 
 WORKDIR /app
 
-# Install curl for health checks
-RUN apk add --no-cache curl
+# Create non-root application user
+RUN groupadd --system appuser && \
+    useradd --system --gid appuser appuser
 
-# Create non-root user for security
-RUN addgroup -S appuser && adduser -S appuser -G appuser
-
-# Copy the built JAR from builder stage
+# Copy built JAR
 COPY --from=builder /app/target/*.jar app.jar
 
-# Change ownership to appuser
+# Give application user ownership
 RUN chown -R appuser:appuser /app
 
-# Switch to non-root user
+# Run as non-root user
 USER appuser
 
-# Expose the port (Render uses dynamic PORT environment variable)
+# Render will provide PORT dynamically
 EXPOSE 8080
 
-# Health check endpoint
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-8080}/actuator/health/liveness || exit 1
-
-# Run the application with optimized JVM settings
-ENTRYPOINT ["java", \
-    "-XX:+UseG1GC", \
-    "-XX:MaxRAMPercentage=75.0", \
-    "-XX:+UseStringDeduplication", \
-    "-Dspring.profiles.active=production", \
-    "-jar", "app.jar"]
+# Start Spring Boot
+ENTRYPOINT ["sh", "-c", "exec java -XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -XX:+UseStringDeduplication -jar app.jar --server.port=${PORT:-8080}"]
