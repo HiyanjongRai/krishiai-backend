@@ -115,7 +115,8 @@ public class ExpertDashboardServiceImpl implements ExpertDashboardService {
     @Override
     @Transactional
     public FarmerInquiryDto updateInquiry(Long userId, Long inquiryId, UpdateInquiryRequest request) {
-        inquiryOverrides.put(inquiryId, new InquiryState(request.status(), request.expertNotes()));
+        String status = request.status().name();
+        inquiryOverrides.put(inquiryId, new InquiryState(status, request.expertNotes()));
         log.info("Expert {} updated inquiry {}: status={}, notes={}", userId, inquiryId, request.status(), request.expertNotes());
 
         // Return updated inquiry representation
@@ -136,7 +137,7 @@ public class ExpertDashboardServiceImpl implements ExpertDashboardService {
                         "Farmer Inquiry",
                         "Inquiry details",
                         "MEDIUM",
-                        request.status(),
+                        status,
                         LocalDateTime.now(),
                         "AI Review",
                         request.expertNotes()

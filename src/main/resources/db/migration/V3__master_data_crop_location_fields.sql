@@ -1,0 +1,21 @@
+-- -- Non-destructive master-data schema update.
+-- ALTER TABLE crops ADD COLUMN IF NOT EXISTS image_url VARCHAR(1000);
+-- ALTER TABLE crops ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT FALSE;
+-- UPDATE crops SET is_default = FALSE WHERE is_default IS NULL;
+-- ALTER TABLE crops ALTER COLUMN is_default SET DEFAULT FALSE;
+-- ALTER TABLE crops ALTER COLUMN is_default SET NOT NULL;
+--
+-- ALTER TABLE crop_categories ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT FALSE;
+-- UPDATE crop_categories SET is_default = FALSE WHERE is_default IS NULL;
+-- ALTER TABLE crop_categories ALTER COLUMN is_default SET DEFAULT FALSE;
+-- ALTER TABLE crop_categories ALTER COLUMN is_default SET NOT NULL;
+--
+-- ALTER TABLE locations ADD COLUMN IF NOT EXISTS code VARCHAR(50);
+-- ALTER TABLE locations ADD COLUMN IF NOT EXISTS municipality_type VARCHAR(40);
+--
+-- CREATE UNIQUE INDEX IF NOT EXISTS uq_locations_code_not_null
+--     ON locations (LOWER(code))
+--     WHERE code IS NOT NULL;
+--
+-- CREATE UNIQUE INDEX IF NOT EXISTS uq_locations_name_parent_type
+--     ON locations (LOWER(name), COALESCE(parent_id, 0), type);

@@ -48,11 +48,11 @@ public class AdminCropCategoryServiceImpl implements AdminCropCategoryService {
         String name = request.name().strip();
         String code = request.code().strip().toUpperCase();
 
-        if (categoryRepository.existsByName(name)) {
+        if (categoryRepository.existsByNameIgnoreCase(name)) {
             throw new ConflictException("Crop category with name '" + name + "' already exists");
         }
 
-        if (categoryRepository.existsByCode(code)) {
+        if (categoryRepository.existsByCodeIgnoreCase(code)) {
             throw new ConflictException("Crop category with code '" + code + "' already exists");
         }
 
@@ -62,6 +62,7 @@ public class AdminCropCategoryServiceImpl implements AdminCropCategoryService {
                 request.description() != null ? request.description().strip() : null,
                 request.icon() != null ? request.icon().strip() : null
         );
+        category.setDefaultCategory(false);
 
         CropCategory saved = categoryRepository.save(category);
         log.info("Created crop category id={} code='{}'", saved.getId(), saved.getCode());
@@ -76,7 +77,7 @@ public class AdminCropCategoryServiceImpl implements AdminCropCategoryService {
 
         if (request.name() != null && !request.name().isBlank()) {
             String name = request.name().strip();
-            if (!name.equalsIgnoreCase(category.getName()) && categoryRepository.existsByName(name)) {
+            if (!name.equalsIgnoreCase(category.getName()) && categoryRepository.existsByNameIgnoreCase(name)) {
                 throw new ConflictException("Crop category with name '" + name + "' already exists");
             }
             category.setName(name);
@@ -84,7 +85,7 @@ public class AdminCropCategoryServiceImpl implements AdminCropCategoryService {
 
         if (request.code() != null && !request.code().isBlank()) {
             String code = request.code().strip().toUpperCase();
-            if (!code.equalsIgnoreCase(category.getCode()) && categoryRepository.existsByCode(code)) {
+            if (!code.equalsIgnoreCase(category.getCode()) && categoryRepository.existsByCodeIgnoreCase(code)) {
                 throw new ConflictException("Crop category with code '" + code + "' already exists");
             }
             category.setCode(code);
@@ -104,6 +105,17 @@ public class AdminCropCategoryServiceImpl implements AdminCropCategoryService {
 
         CropCategory saved = categoryRepository.save(category);
         log.info("Updated crop category id={}", saved.getId());
+        return CropCategoryResponse.from(saved);
+    }
+
+    @Override
+    @Transactional
+    public CropCategoryResponse updateStatus(Long categoryId, boolean active) {
+        CropCategory category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Crop category not found with id: " + categoryId));
+        category.setActive(active);
+        CropCategory saved = categoryRepository.save(category);
+        log.info("Updated crop category id={} active={}", saved.getId(), saved.isActive());
         return CropCategoryResponse.from(saved);
     }
 

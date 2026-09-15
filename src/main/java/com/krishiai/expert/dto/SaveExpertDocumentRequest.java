@@ -2,6 +2,7 @@ package com.krishiai.expert.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import org.hibernate.validator.constraints.URL;
 
 public record SaveExpertDocumentRequest(
         @NotBlank(message = "Document type is required")
@@ -22,5 +23,8 @@ public record SaveExpertDocumentRequest(
         @Size(max = 50, message = "File size must not exceed 50 characters")
         String fileSize,
 
+        @NotBlank(message = "File URL is required")
+        @URL(message = "File URL must be a valid URL")
+        @Size(max = 1000, message = "File URL must not exceed 1000 characters")
         String fileUrl
 ) {}

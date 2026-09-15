@@ -5,10 +5,12 @@ import com.krishiai.expert.dto.*;
 import com.krishiai.expert.service.ExpertProfileService;
 import com.krishiai.security.userdetails.CustomUserDetails;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -21,7 +23,8 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/api/v1/expert/profile")
-@PreAuthorize("hasAnyAuthority('ROLE_EXPERT', 'ROLE_ADMIN')")
+@PreAuthorize("hasAuthority('ROLE_EXPERT')")
+@Validated
 @RequiredArgsConstructor
 public class ExpertProfileController {
 
@@ -89,7 +92,7 @@ public class ExpertProfileController {
     @PostMapping("/expertises/{expertiseId}/evidence")
     public ResponseEntity<ApiResponse<CropExpertiseResponse>> attachEvidence(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable Long expertiseId,
+            @PathVariable @Positive Long expertiseId,
             @Valid @RequestBody AttachExpertiseEvidenceRequest request) {
 
         CropExpertiseResponse response = expertProfileService
@@ -104,7 +107,7 @@ public class ExpertProfileController {
     @DeleteMapping("/expertises/{expertiseId}")
     public ResponseEntity<ApiResponse<Void>> removeExpertise(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable Long expertiseId) {
+            @PathVariable @Positive Long expertiseId) {
 
         expertProfileService.removeExpertise(principal.getUserId(), expertiseId);
         return ResponseEntity.ok(ApiResponse.success("Expertise claim removed", null));
@@ -117,7 +120,7 @@ public class ExpertProfileController {
     @DeleteMapping("/crops/{cropId}")
     public ResponseEntity<ApiResponse<Void>> removeCrop(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable Long cropId) {
+            @PathVariable @Positive Long cropId) {
 
         expertProfileService.removeCropExpertise(principal.getUserId(), cropId);
         return ResponseEntity.ok(ApiResponse.success("Crop expertise removed", null));
@@ -132,7 +135,7 @@ public class ExpertProfileController {
     @PostMapping("/specializations/{specializationId}")
     public ResponseEntity<ApiResponse<SpecializationResponse>> addSpecialization(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable Long specializationId) {
+            @PathVariable @Positive Long specializationId) {
 
         SpecializationResponse response = expertProfileService
                 .addSpecialization(principal.getUserId(), specializationId);
@@ -146,7 +149,7 @@ public class ExpertProfileController {
     @DeleteMapping("/specializations/{specializationId}")
     public ResponseEntity<ApiResponse<Void>> removeSpecialization(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable Long specializationId) {
+            @PathVariable @Positive Long specializationId) {
 
         expertProfileService.removeSpecialization(principal.getUserId(), specializationId);
         return ResponseEntity.ok(ApiResponse.success("Specialization removed", null));
@@ -161,7 +164,7 @@ public class ExpertProfileController {
     @PostMapping("/locations/{locationId}")
     public ResponseEntity<ApiResponse<LocationResponse>> addLocation(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable Long locationId) {
+            @PathVariable @Positive Long locationId) {
 
         LocationResponse response = expertProfileService
                 .addLocation(principal.getUserId(), locationId);
@@ -175,7 +178,7 @@ public class ExpertProfileController {
     @DeleteMapping("/locations/{locationId}")
     public ResponseEntity<ApiResponse<Void>> removeLocation(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable Long locationId) {
+            @PathVariable @Positive Long locationId) {
 
         expertProfileService.removeLocation(principal.getUserId(), locationId);
         return ResponseEntity.ok(ApiResponse.success("Location removed", null));

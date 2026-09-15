@@ -3,6 +3,7 @@ package com.krishiai.expert.dto;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
+import org.hibernate.validator.constraints.URL;
 
 /**
  * Request body to update professional profile fields.
@@ -28,6 +29,7 @@ public record UpdateExpertProfileRequest(
         @Size(max = 100, message = "Designation must not exceed 100 characters")
         String designation,
 
+        @URL(message = "Website URL must be a valid URL")
         @Size(max = 500, message = "Website URL must not exceed 500 characters")
         String websiteUrl
 ) {}

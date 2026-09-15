@@ -2,6 +2,7 @@ package com.krishiai.common.exception;
 
 import com.krishiai.common.response.ApiError;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -142,6 +143,22 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now(),
                 request.getRequestURI(),
                 fieldErrors
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiError> handleConstraintViolation(
+            ConstraintViolationException ex, HttpServletRequest request) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getConstraintViolations().forEach(violation ->
+                errors.put(violation.getPropertyPath().toString(), violation.getMessage()));
+        ApiError error = new ApiError(
+                HttpStatus.BAD_REQUEST.value(),
+                "Validation failed",
+                LocalDateTime.now(),
+                request.getRequestURI(),
+                errors
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }

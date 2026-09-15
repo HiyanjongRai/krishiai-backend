@@ -3,6 +3,7 @@ package com.krishiai.user.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import org.hibernate.validator.constraints.URL;
 
 public record UserUpdateRequest(
         @NotBlank(message = "First name must not be blank")
@@ -15,6 +16,8 @@ public record UserUpdateRequest(
         )
         String phone,
 
+        @URL(message = "Profile image must be a valid URL")
+        @Size(max = 1000, message = "Profile image URL must not exceed 1000 characters")
         String profileImage
 ) {
 }

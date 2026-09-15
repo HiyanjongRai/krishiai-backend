@@ -94,30 +94,4 @@ public class AdminUserServiceImpl implements AdminUserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         return com.krishiai.user.dto.UserResponse.from(user);
     }
-
-    @Override
-    @Transactional
-    public com.krishiai.user.dto.UserResponse updateUserRole(
-            Long targetUserId,
-            com.krishiai.admin.dto.UpdateUserRoleRequest request,
-            Long currentAdminId
-    ) {
-        log.info("Admin {} modifying role of user {} to {}", currentAdminId, targetUserId, request.role());
-
-        User targetUser = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + targetUserId));
-
-        if (currentAdminId != null && targetUser.getId().equals(currentAdminId)) {
-            throw new BadRequestException("Admins cannot modify their own role");
-        }
-
-        targetUser.setRole(request.role());
-        User updated = userRepository.save(targetUser);
-
-        // Invalidate active refresh tokens so the user re-authenticates with new privileges
-        refreshTokenService.revokeAllForUser(targetUserId);
-
-        log.info("Successfully changed role of user {} to {}", targetUserId, request.role());
-        return com.krishiai.user.dto.UserResponse.from(updated);
-    }
 }

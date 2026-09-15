@@ -1,13 +1,20 @@
 package com.krishiai.expert.controller;
 
 import com.krishiai.common.response.ApiResponse;
+import com.krishiai.common.exception.ResourceNotFoundException;
 import com.krishiai.expert.dto.VerifiedExpertResponse;
 import com.krishiai.expert.entity.CropExpertiseVerificationStatus;
+import com.krishiai.expert.entity.ExpertVerificationStatus;
 import com.krishiai.expert.entity.ExpertProfile;
 import com.krishiai.expert.repository.ExpertProfileRepository;
+import com.krishiai.user.entity.UserStatus;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Comparator;
@@ -26,6 +33,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/v1/experts")
+@Validated
 @RequiredArgsConstructor
 public class ExpertDirectoryController {
 
@@ -38,8 +46,9 @@ public class ExpertDirectoryController {
      * Lists all experts, prioritizing professionally verified specialists.
      */
     @GetMapping
+    @Transactional(readOnly = true)
     public ResponseEntity<ApiResponse<List<VerifiedExpertResponse>>> getVerifiedExperts(
-            @RequestParam(required = false) String crop) {
+            @RequestParam(required = false) @Size(max = 100) String crop) {
 
         List<ExpertProfile> profiles;
         if (crop != null && !crop.isBlank()) {
@@ -56,12 +65,37 @@ public class ExpertDirectoryController {
     }
 
     /**
+     * GET /api/v1/experts/{expertProfileId}
+     * Returns one public, active, professionally verified expert profile.
+     */
+    @GetMapping("/{expertProfileId}")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<VerifiedExpertResponse>> getVerifiedExpert(
+            @PathVariable @Positive Long expertProfileId) {
+
+        ExpertProfile profile = expertProfileRepository.findByIdWithUser(expertProfileId)
+                .orElseThrow(() -> new ResourceNotFoundException("Expert profile not found."));
+
+        if (profile.getUser() == null
+                || profile.getUser().getStatus() != UserStatus.ACTIVE
+                || profile.getVerificationStatus() != ExpertVerificationStatus.VERIFIED) {
+            throw new ResourceNotFoundException("Expert profile not found.");
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(
+                "Expert profile retrieved successfully",
+                VerifiedExpertResponse.from(profile)
+        ));
+    }
+
+    /**
      * GET /api/v1/experts/search
      * Search endpoint specifically for crop and domain based matching.
      */
     @GetMapping("/search")
+    @Transactional(readOnly = true)
     public ResponseEntity<ApiResponse<List<VerifiedExpertResponse>>> searchByCrop(
-            @RequestParam String crop) {
+            @RequestParam @Size(min = 1, max = 100) String crop) {
 
         List<ExpertProfile> profiles = searchAndRankExperts(crop.trim());
         List<VerifiedExpertResponse> responses = profiles.stream()

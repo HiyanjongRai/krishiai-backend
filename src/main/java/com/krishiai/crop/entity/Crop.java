@@ -16,7 +16,8 @@ import java.util.Objects;
         name = "crops",
         indexes = {
                 @Index(name = "idx_crops_name", columnList = "name"),
-                @Index(name = "idx_crops_cat_active", columnList = "category_id, is_active")
+                @Index(name = "idx_crops_cat_active", columnList = "category_id, is_active"),
+                @Index(name = "idx_crops_default", columnList = "is_default")
         },
         uniqueConstraints = {
                 @UniqueConstraint(name = "uq_crops_name", columnNames = "name")
@@ -55,6 +56,12 @@ public class Crop extends BaseEntity {
 
     @Column(name = "description", length = 1000)
     private String description;
+
+    @Column(name = "image_url", length = 1000)
+    private String imageUrl;
+
+    @Column(name = "is_default", nullable = false, columnDefinition = "boolean default false")
+    private boolean defaultCrop = false;
 
     @Column(name = "is_active", nullable = false)
     private boolean active = true;

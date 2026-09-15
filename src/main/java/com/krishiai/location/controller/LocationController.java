@@ -4,8 +4,10 @@ import com.krishiai.common.response.ApiResponse;
 import com.krishiai.location.dto.LocationResponse;
 import com.krishiai.location.entity.LocationType;
 import com.krishiai.location.service.LocationService;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,6 +19,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/v1/locations")
+@Validated
 @RequiredArgsConstructor
 public class LocationController {
 
@@ -48,13 +51,36 @@ public class LocationController {
                 locationService.getRootLocations()));
     }
 
+    @GetMapping("/provinces")
+    public ResponseEntity<ApiResponse<List<LocationResponse>>> getProvinces() {
+        return ResponseEntity.ok(ApiResponse.success(
+                "Provinces retrieved successfully",
+                locationService.getProvinces()));
+    }
+
+    @GetMapping("/provinces/{provinceId}/districts")
+    public ResponseEntity<ApiResponse<List<LocationResponse>>> getDistrictsByProvince(
+            @PathVariable @Positive Long provinceId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                "Districts retrieved successfully",
+                locationService.getDistrictsByProvince(provinceId)));
+    }
+
+    @GetMapping("/districts/{districtId}/municipalities")
+    public ResponseEntity<ApiResponse<List<LocationResponse>>> getMunicipalitiesByDistrict(
+            @PathVariable @Positive Long districtId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                "Municipalities retrieved successfully",
+                locationService.getMunicipalitiesByDistrict(districtId)));
+    }
+
     /**
      * GET /api/v1/locations/{parentId}/children
      * Returns direct children of the given parent location.
      */
     @GetMapping("/{parentId}/children")
     public ResponseEntity<ApiResponse<List<LocationResponse>>> getChildren(
-            @PathVariable Long parentId) {
+            @PathVariable @Positive Long parentId) {
 
         return ResponseEntity.ok(ApiResponse.success(
                 "Child locations retrieved successfully",
@@ -67,7 +93,7 @@ public class LocationController {
      */
     @GetMapping("/{locationId}")
     public ResponseEntity<ApiResponse<LocationResponse>> getLocationById(
-            @PathVariable Long locationId) {
+            @PathVariable @Positive Long locationId) {
         return ResponseEntity.ok(ApiResponse.success(
                 "Location retrieved successfully",
                 locationService.getLocationById(locationId)));

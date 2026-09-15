@@ -17,7 +17,8 @@ import java.util.Objects;
         name = "crop_categories",
         indexes = {
                 @Index(name = "idx_crop_cat_code", columnList = "code", unique = true),
-                @Index(name = "idx_crop_cat_active", columnList = "is_active")
+                @Index(name = "idx_crop_cat_active", columnList = "is_active"),
+                @Index(name = "idx_crop_cat_default", columnList = "is_default")
         },
         uniqueConstraints = {
                 @UniqueConstraint(name = "uq_crop_cat_code", columnNames = "code"),
@@ -49,6 +50,9 @@ public class CropCategory extends BaseEntity {
 
     @Column(name = "icon", length = 100)
     private String icon;
+
+    @Column(name = "is_default", nullable = false, columnDefinition = "boolean default false")
+    private boolean defaultCategory = false;
 
     @Column(name = "is_active", nullable = false)
     private boolean active = true;

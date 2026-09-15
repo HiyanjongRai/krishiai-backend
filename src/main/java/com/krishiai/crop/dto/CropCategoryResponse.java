@@ -8,6 +8,8 @@ public record CropCategoryResponse(
         String code,
         String description,
         String icon,
+        boolean defaultCategory,
+        long cropCount,
         boolean active
 ) {
     public static CropCategoryResponse from(CropCategory category) {
@@ -17,6 +19,8 @@ public record CropCategoryResponse(
                 category.getCode(),
                 category.getDescription(),
                 category.getIcon(),
+                category.isDefaultCategory(),
+                category.getCrops() != null ? category.getCrops().size() : 0,
                 category.isActive()
         );
     }

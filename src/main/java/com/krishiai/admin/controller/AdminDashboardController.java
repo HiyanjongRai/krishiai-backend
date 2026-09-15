@@ -10,10 +10,13 @@ import com.krishiai.common.response.ApiResponse;
 import com.krishiai.expert.dto.CropExpertiseResponse;
 import com.krishiai.security.userdetails.CustomUserDetails;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,6 +24,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/admin")
 @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+@Validated
 @RequiredArgsConstructor
 public class AdminDashboardController {
 
@@ -45,7 +49,7 @@ public class AdminDashboardController {
     }
 
     @GetMapping("/experts/{profileId}")
-    public ResponseEntity<ApiResponse<PendingExpertApplicationResponse>> getExpertDetails(@PathVariable Long profileId) {
+    public ResponseEntity<ApiResponse<PendingExpertApplicationResponse>> getExpertDetails(@PathVariable @Positive Long profileId) {
         PendingExpertApplicationResponse response = adminDashboardService.getExpertDetails(profileId);
         return ResponseEntity.ok(ApiResponse.success("Expert details retrieved successfully", response));
     }
@@ -58,7 +62,7 @@ public class AdminDashboardController {
 
     @PostMapping("/experts/{profileId}/start-review")
     public ResponseEntity<ApiResponse<PendingExpertApplicationResponse>> startReview(
-            @PathVariable Long profileId,
+            @PathVariable @Positive Long profileId,
             @AuthenticationPrincipal CustomUserDetails principal) {
         PendingExpertApplicationResponse response = adminDashboardService.startReview(
                 profileId, principal.getUserId(), principal.getUsername());
@@ -67,7 +71,7 @@ public class AdminDashboardController {
 
     @PostMapping("/experts/{profileId}/request-info")
     public ResponseEntity<ApiResponse<PendingExpertApplicationResponse>> requestAdditionalInfo(
-            @PathVariable Long profileId,
+            @PathVariable @Positive Long profileId,
             @Valid @RequestBody(required = false) ReviewApplicationRequest request,
             @AuthenticationPrincipal CustomUserDetails principal) {
         PendingExpertApplicationResponse response = adminDashboardService.requestAdditionalInfo(
@@ -77,7 +81,7 @@ public class AdminDashboardController {
 
     @PostMapping("/experts/{profileId}/approve")
     public ResponseEntity<ApiResponse<PendingExpertApplicationResponse>> approveExpertApplication(
-            @PathVariable Long profileId,
+            @PathVariable @Positive Long profileId,
             @Valid @RequestBody(required = false) ReviewApplicationRequest request,
             @AuthenticationPrincipal CustomUserDetails principal) {
         PendingExpertApplicationResponse response = adminDashboardService.approveExpertApplication(
@@ -87,7 +91,7 @@ public class AdminDashboardController {
 
     @PostMapping("/experts/{profileId}/reject")
     public ResponseEntity<ApiResponse<PendingExpertApplicationResponse>> rejectExpertApplication(
-            @PathVariable Long profileId,
+            @PathVariable @Positive Long profileId,
             @Valid @RequestBody(required = false) ReviewApplicationRequest request,
             @AuthenticationPrincipal CustomUserDetails principal) {
         PendingExpertApplicationResponse response = adminDashboardService.rejectExpertApplication(
@@ -97,8 +101,8 @@ public class AdminDashboardController {
 
     @PostMapping("/experts/{profileId}/crops/{cropId}/verify")
     public ResponseEntity<ApiResponse<CropExpertiseResponse>> verifyCropExpertise(
-            @PathVariable Long profileId,
-            @PathVariable Long cropId,
+            @PathVariable @Positive Long profileId,
+            @PathVariable @Positive Long cropId,
             @AuthenticationPrincipal CustomUserDetails principal) {
         CropExpertiseResponse response = adminDashboardService.verifyCropExpertise(
                 profileId, cropId, principal.getUserId(), principal.getUsername());
@@ -107,8 +111,8 @@ public class AdminDashboardController {
 
     @PostMapping("/experts/{profileId}/crops/{cropId}/reject")
     public ResponseEntity<ApiResponse<CropExpertiseResponse>> rejectCropExpertise(
-            @PathVariable Long profileId,
-            @PathVariable Long cropId,
+            @PathVariable @Positive Long profileId,
+            @PathVariable @Positive Long cropId,
             @AuthenticationPrincipal CustomUserDetails principal) {
         CropExpertiseResponse response = adminDashboardService.rejectCropExpertise(
                 profileId, cropId, principal.getUserId(), principal.getUsername());
@@ -126,7 +130,7 @@ public class AdminDashboardController {
 
     @GetMapping("/expertise-verifications")
     public ResponseEntity<ApiResponse<List<com.krishiai.admin.dto.AdminExpertiseVerificationItemResponse>>> getExpertiseVerifications(
-            @RequestParam(required = false) String status) {
+            @RequestParam(required = false) @Size(max = 40) String status) {
         List<com.krishiai.admin.dto.AdminExpertiseVerificationItemResponse> response = adminDashboardService.getExpertiseVerifications(status);
         return ResponseEntity.ok(ApiResponse.success("Expertise verifications retrieved successfully", response));
     }

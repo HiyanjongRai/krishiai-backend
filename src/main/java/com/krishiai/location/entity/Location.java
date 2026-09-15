@@ -18,7 +18,8 @@ import java.util.Objects;
         name = "locations",
         indexes = {
                 @Index(name = "idx_locations_parent", columnList = "parent_id, type"),
-                @Index(name = "idx_locations_type_active", columnList = "type, is_active")
+                @Index(name = "idx_locations_type_active", columnList = "type, is_active"),
+                @Index(name = "idx_locations_code", columnList = "code")
         }
 )
 @Getter
@@ -44,10 +45,18 @@ public class Location extends BaseEntity {
     @Column(name = "nepali_name", length = 120)
     private String nepaliName;
 
+    @Size(max = 50, message = "Location code must not exceed 50 characters")
+    @Column(name = "code", length = 50)
+    private String code;
+
     @NotNull(message = "Location type is required")
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false, length = 30)
     private LocationType type;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "municipality_type", length = 40)
+    private MunicipalityType municipalityType;
 
     @Column(name = "is_active", nullable = false)
     private boolean active = true;

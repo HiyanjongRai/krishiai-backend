@@ -8,6 +8,7 @@ import com.krishiai.admin.dto.PendingExpertApplicationResponse;
 import com.krishiai.admin.dto.ReviewApplicationRequest;
 import com.krishiai.admin.entity.ExpertAuditLog;
 import com.krishiai.admin.repository.ExpertAuditLogRepository;
+import com.krishiai.common.exception.BadRequestException;
 import com.krishiai.common.exception.ResourceNotFoundException;
 import com.krishiai.crop.entity.Crop;
 import com.krishiai.crop.repository.CropRepository;
@@ -45,6 +46,13 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
     private final CropRepository cropRepository;
     private final ExpertAuditLogRepository auditLogRepository;
     private final ExpertCropExpertiseRepository cropExpertiseRepository;
+
+    private String requireReviewNotes(ReviewApplicationRequest request, String message) {
+        if (request == null || request.notes() == null || request.notes().isBlank()) {
+            throw new BadRequestException(message);
+        }
+        return request.notes().strip();
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -232,7 +240,7 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
                 .orElseThrow(() -> new ResourceNotFoundException("Expert profile not found with id: " + profileId));
 
         String prevStatus = profile.getApplicationStatus().name();
-        String notes = request != null && request.notes() != null ? request.notes() : "Rejected by platform administrator";
+        String notes = requireReviewNotes(request, "Rejection notes are required");
         profile.rejectApplication(notes);
 
         // Crucial security requirement: Do NOT set User.status to PENDING.
@@ -276,7 +284,7 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
                 .orElseThrow(() -> new ResourceNotFoundException("Expert profile not found with id: " + profileId));
 
         String prevStatus = profile.getApplicationStatus().name();
-        String notes = request != null && request.notes() != null ? request.notes() : "Additional documents or information required before approval.";
+        String notes = requireReviewNotes(request, "Additional information request notes are required");
         profile.requestAdditionalInfo(notes);
         ExpertProfile saved = expertProfileRepository.save(profile);
 
@@ -353,9 +361,9 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
 
             Long profileId = entry.getExpertProfile() != null ? entry.getExpertProfile().getId() : null;
             String prevStatus = entry.getVerificationStatus() != null ? entry.getVerificationStatus().name() : "UNKNOWN";
-            String decision = item.decision() != null ? item.decision().trim().toUpperCase() : "VERIFY";
+            BatchExpertiseVerificationRequest.Decision decision = item.decision();
 
-            if ("VERIFY".equals(decision)) {
+            if (decision == BatchExpertiseVerificationRequest.Decision.VERIFY) {
                 entry.verify(adminUserId, item.verificationMethod());
                 cropExpertiseRepository.save(entry);
                 verifiedIds.add(entry.getId());
@@ -365,7 +373,7 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
                         entry.getCrop() != null ? entry.getCrop().getId() : null,
                         request.notes() != null ? request.notes() : "Batch verification approved by admin"
                 ));
-            } else if ("REJECT".equals(decision)) {
+            } else if (decision == BatchExpertiseVerificationRequest.Decision.REJECT) {
                 String reason = item.reason() != null && !item.reason().isBlank()
                         ? item.reason().trim()
                         : (request.notes() != null ? request.notes() : "Supporting evidence does not sufficiently support this expertise.");
@@ -378,7 +386,7 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
                         entry.getCrop() != null ? entry.getCrop().getId() : null,
                         reason
                 ));
-            } else if ("REQUEST_EVIDENCE".equals(decision)) {
+            } else if (decision == BatchExpertiseVerificationRequest.Decision.REQUEST_EVIDENCE) {
                 entry.setVerificationStatus(CropExpertiseVerificationStatus.EVIDENCE_SUBMITTED);
                 entry.setRejectionReason(item.reason() != null ? item.reason().trim() : "Additional documentation requested by admin");
                 cropExpertiseRepository.save(entry);

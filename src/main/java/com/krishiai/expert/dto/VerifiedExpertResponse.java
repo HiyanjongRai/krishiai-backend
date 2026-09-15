@@ -13,7 +13,6 @@ import java.util.List;
  */
 public record VerifiedExpertResponse(
         Long expertProfileId,
-        Long userId,
         String fullName,
         String profileImage,
         String designation,
@@ -24,8 +23,8 @@ public record VerifiedExpertResponse(
         String bio,
         boolean professionalVerified,
         String professionalVerificationStatus,
-        List<CropExpertiseResponse> verifiedCrops,
-        List<CropExpertiseResponse> allExpertises,
+        List<PublicExpertiseResponse> verifiedCrops,
+        List<PublicExpertiseResponse> allExpertises,
         List<String> specializations,
         List<String> locations
 ) {
@@ -35,15 +34,15 @@ public record VerifiedExpertResponse(
                 : "Agricultural Specialist";
         String profileImage = ep.getUser() != null ? ep.getUser().getProfileImage() : null;
 
-        List<CropExpertiseResponse> all = ep.getCropExpertises() == null ? List.of() :
+        List<PublicExpertiseResponse> all = ep.getCropExpertises() == null ? List.of() :
                 ep.getCropExpertises().stream()
-                        .map(CropExpertiseResponse::from)
+                        .map(PublicExpertiseResponse::from)
                         .toList();
 
-        List<CropExpertiseResponse> verifiedCrops = ep.getCropExpertises() == null ? List.of() :
+        List<PublicExpertiseResponse> verifiedCrops = ep.getCropExpertises() == null ? List.of() :
                 ep.getCropExpertises().stream()
                         .filter(c -> c.getVerificationStatus() == CropExpertiseVerificationStatus.VERIFIED)
-                        .map(CropExpertiseResponse::from)
+                        .map(PublicExpertiseResponse::from)
                         .toList();
 
         List<String> specs = ep.getSpecializations() == null ? List.of() :
@@ -58,7 +57,6 @@ public record VerifiedExpertResponse(
 
         return new VerifiedExpertResponse(
                 ep.getId(),
-                ep.getUser() != null ? ep.getUser().getId() : null,
                 fullName,
                 profileImage,
                 ep.getDesignation(),

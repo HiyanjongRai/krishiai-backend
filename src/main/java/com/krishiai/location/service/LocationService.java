@@ -22,6 +22,12 @@ public interface LocationService {
     /** Returns details for a single location by ID. Throws ResourceNotFoundException if missing. */
     LocationResponse getLocationById(Long id);
 
+    List<LocationResponse> getProvinces();
+
+    List<LocationResponse> getDistrictsByProvince(Long provinceId);
+
+    List<LocationResponse> getMunicipalitiesByDistrict(Long districtId);
+
     /** Returns the underlying Location entity. Throws ResourceNotFoundException if missing. */
     com.krishiai.location.entity.Location getLocationEntity(Long id);
 }

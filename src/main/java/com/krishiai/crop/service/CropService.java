@@ -10,7 +10,9 @@ import java.util.List;
 
 public interface CropService {
     List<CropCategoryResponse> getAllActiveCategories();
+    CropCategoryResponse getActiveCategoryById(Long categoryId);
     PageResponse<CropResponse> getActiveCrops(Long categoryId, String search, Pageable pageable);
     CropResponse getCropById(Long id);
+    List<CropResponse> getActiveCropsByCategory(Long categoryId);
     Crop getCropEntity(Long id);
 }

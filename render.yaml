@@ -1,0 +1,87 @@
+# render.yaml
+# Render.com deployment configuration
+
+services:
+  - type: web
+    name: krishiai-api
+    runtime: docker
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true
+
+    # Build settings
+    buildCommand: "docker build -t krishiai-api ."
+
+    # Instance settings
+    plan: starter
+    numInstances: 1
+
+    # Health check
+    healthCheckPath: /actuator/health
+    healthCheckProtocol: HTTP
+
+    # Environment variables
+    envVars:
+      # Server Configuration
+      - key: PORT
+        value: "8080"
+
+      # Database Configuration (Required)
+      - key: DATABASE_URL
+        scope: run
+      - key: DATABASE_USERNAME
+        scope: run
+      - key: DATABASE_PASSWORD
+        scope: run
+
+      # JWT Configuration (Required)
+      - key: JWT_SECRET
+        scope: run
+      - key: JWT_EXPIRATION_MS
+        value: "86400000"
+      - key: JWT_REFRESH_EXPIRATION_MS
+        value: "2592000000"
+
+      # Admin Seed Configuration (Required)
+      - key: ADMIN_EMAIL
+        scope: run
+      - key: ADMIN_PASSWORD
+        scope: run
+      - key: ADMIN_FULLNAME
+        value: "Platform"
+
+      # AI Service Configuration
+      - key: AI_SERVICE_URL
+        scope: run
+      - key: AI_SERVICE_MOCK
+        value: "false"
+
+      # Weather Service Configuration
+      - key: WEATHER_API_KEY
+        scope: run
+      - key: WEATHER_SERVICE_MOCK
+        value: "false"
+
+      # Cloudinary Configuration
+      - key: CLOUDINARY_CLOUD_NAME
+        scope: run
+      - key: CLOUDINARY_API_KEY
+        scope: run
+      - key: CLOUDINARY_API_SECRET
+        scope: run
+
+      # File Upload Configuration
+      - key: MAX_FILE_SIZE
+        value: "50MB"
+      - key: MAX_REQUEST_SIZE
+        value: "60MB"
+
+      # Application Configuration
+      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
+        value: "validate"
+      - key: SPRING_JPA_DATABASE_PLATFORM
+        value: "org.hibernate.dialect.PostgreSQLDialect"
+      - key: LOGGING_LEVEL_ROOT
+        value: "INFO"
+      - key: LOGGING_LEVEL_COM_KRISHIAI
+        value: "INFO"

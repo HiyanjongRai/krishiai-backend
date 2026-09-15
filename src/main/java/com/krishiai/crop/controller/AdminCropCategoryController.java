@@ -6,10 +6,12 @@ import com.krishiai.crop.dto.CropCategoryResponse;
 import com.krishiai.crop.dto.UpdateCropCategoryRequest;
 import com.krishiai.crop.service.AdminCropCategoryService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,6 +19,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/admin/crop-categories")
 @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+@Validated
 @RequiredArgsConstructor
 public class AdminCropCategoryController {
 
@@ -31,7 +34,7 @@ public class AdminCropCategoryController {
 
     @GetMapping("/{categoryId}")
     public ResponseEntity<ApiResponse<CropCategoryResponse>> getCategoryById(
-            @PathVariable Long categoryId) {
+            @PathVariable @Positive Long categoryId) {
         CropCategoryResponse category = adminCropCategoryService.getCategoryById(categoryId);
         return ResponseEntity.ok(ApiResponse.success("Crop category retrieved successfully", category));
     }
@@ -46,7 +49,7 @@ public class AdminCropCategoryController {
 
     @PutMapping("/{categoryId}")
     public ResponseEntity<ApiResponse<CropCategoryResponse>> updateCategory(
-            @PathVariable Long categoryId,
+            @PathVariable @Positive Long categoryId,
             @Valid @RequestBody UpdateCropCategoryRequest request) {
         CropCategoryResponse category = adminCropCategoryService.updateCategory(categoryId, request);
         return ResponseEntity.ok(ApiResponse.success("Crop category updated successfully", category));
@@ -54,8 +57,16 @@ public class AdminCropCategoryController {
 
     @DeleteMapping("/{categoryId}")
     public ResponseEntity<ApiResponse<Void>> deleteCategory(
-            @PathVariable Long categoryId) {
+            @PathVariable @Positive Long categoryId) {
         adminCropCategoryService.deleteCategory(categoryId);
         return ResponseEntity.ok(ApiResponse.success("Crop category deleted successfully"));
+    }
+
+    @PatchMapping("/{categoryId}/status")
+    public ResponseEntity<ApiResponse<CropCategoryResponse>> updateStatus(
+            @PathVariable @Positive Long categoryId,
+            @RequestParam boolean active) {
+        CropCategoryResponse category = adminCropCategoryService.updateStatus(categoryId, active);
+        return ResponseEntity.ok(ApiResponse.success("Crop category status updated successfully", category));
     }
 }

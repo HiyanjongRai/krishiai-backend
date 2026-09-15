@@ -1,6 +1,7 @@
 package com.krishiai.security.config;
 
 import com.krishiai.security.jwt.JwtAuthenticationFilter;
+import com.krishiai.security.ratelimit.ApiRateLimitFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,6 +36,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ApiRateLimitFilter apiRateLimitFilter;
 
     @Value("${app.cors.allowed-origin-patterns:http://localhost:*,http://127.0.0.1:*}")
     private String allowedOriginPatterns;
@@ -104,6 +106,7 @@ public class SecurityConfig {
 
                         // Public read-only catalog and knowledge
                         .requestMatchers(HttpMethod.GET, "/api/v1/crops/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/crop-categories/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/experts/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/knowledge/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/weather/**").permitAll()
@@ -116,8 +119,11 @@ public class SecurityConfig {
                         // Admin routes require ROLE_ADMIN
                         .requestMatchers("/api/v1/admin/**").hasAuthority("ROLE_ADMIN")
 
-                        // Expert routes require ROLE_EXPERT (or ROLE_ADMIN for preview/management)
-                        .requestMatchers("/api/v1/expert/**").hasAnyAuthority("ROLE_EXPERT", "ROLE_ADMIN")
+                        // Expert routes require ROLE_EXPERT. Admin management must use /api/v1/admin/**.
+                        .requestMatchers("/api/v1/expert/**").hasAuthority("ROLE_EXPERT")
+
+                        // Consultation messages are participant-checked in the service layer.
+                        .requestMatchers("/api/v1/consultations/**").hasAnyAuthority("ROLE_FARMER", "ROLE_EXPERT", "ROLE_ADMIN")
 
                         // Farmer routes require ROLE_FARMER
                         .requestMatchers("/api/v1/farmer/**").hasAuthority("ROLE_FARMER")
@@ -125,6 +131,7 @@ public class SecurityConfig {
                         // All other API requests must be authenticated
                         .anyRequest().authenticated()
                 )
+                .addFilterBefore(apiRateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

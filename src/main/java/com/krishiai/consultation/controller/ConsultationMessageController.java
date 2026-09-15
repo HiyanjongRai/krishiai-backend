@@ -7,18 +7,21 @@ import com.krishiai.consultation.service.ConsultationMessageService;
 import com.krishiai.security.userdetails.CustomUserDetails;
 import com.krishiai.user.entity.UserRole;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/farmer/consultations")
+@RequestMapping("/api/v1/consultations")
 @PreAuthorize("hasAnyAuthority('ROLE_FARMER', 'ROLE_EXPERT', 'ROLE_ADMIN')")
+@Validated
 @RequiredArgsConstructor
 public class ConsultationMessageController {
 
@@ -26,7 +29,7 @@ public class ConsultationMessageController {
 
     @GetMapping("/{consultationId}/messages")
     public ResponseEntity<ApiResponse<List<MessageResponse>>> getMessages(
-            @PathVariable Long consultationId,
+            @PathVariable @Positive Long consultationId,
             @AuthenticationPrincipal CustomUserDetails principal) {
         boolean isAdmin = principal.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals(UserRole.ROLE_ADMIN.name()));
@@ -36,7 +39,7 @@ public class ConsultationMessageController {
 
     @PostMapping("/{consultationId}/messages")
     public ResponseEntity<ApiResponse<MessageResponse>> sendMessage(
-            @PathVariable Long consultationId,
+            @PathVariable @Positive Long consultationId,
             @Valid @RequestBody SendMessageRequest request,
             @AuthenticationPrincipal CustomUserDetails principal) {
         MessageResponse response = messageService.sendMessage(consultationId, principal.getUserId(), request);

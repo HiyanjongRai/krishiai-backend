@@ -7,11 +7,13 @@ import com.krishiai.farm.dto.UpdateFarmRequest;
 import com.krishiai.farm.service.FarmService;
 import com.krishiai.security.userdetails.CustomUserDetails;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,14 +21,15 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/farmer")
 @PreAuthorize("hasAuthority('ROLE_FARMER')")
+@Validated
 @RequiredArgsConstructor
 public class FarmerFarmController {
 
     private final FarmService farmService;
 
-    // ── Single-Farm Endpoints (/farm) ─────────────────────────────────────────
+    // ── Multi-Farm Endpoints (/farms) ─────────────────────────────────────────
 
-    @PostMapping("/farm")
+    @PostMapping("/farms")
     public ResponseEntity<ApiResponse<FarmResponse>> createFarm(
             @AuthenticationPrincipal CustomUserDetails principal,
             @Valid @RequestBody CreateFarmRequest request) {
@@ -34,30 +37,6 @@ public class FarmerFarmController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Farm created successfully", response));
     }
-
-    @GetMapping("/farm")
-    public ResponseEntity<ApiResponse<FarmResponse>> getMyFarm(
-            @AuthenticationPrincipal CustomUserDetails principal) {
-        FarmResponse response = farmService.getMyFarm(principal.getUserId());
-        return ResponseEntity.ok(ApiResponse.success("Farm retrieved successfully", response));
-    }
-
-    @PutMapping("/farm")
-    public ResponseEntity<ApiResponse<FarmResponse>> updateMyFarm(
-            @AuthenticationPrincipal CustomUserDetails principal,
-            @Valid @RequestBody UpdateFarmRequest request) {
-        FarmResponse response = farmService.updateMyFarm(principal.getUserId(), request);
-        return ResponseEntity.ok(ApiResponse.success("Farm updated successfully", response));
-    }
-
-    @DeleteMapping("/farm")
-    public ResponseEntity<ApiResponse<Void>> deleteMyFarm(
-            @AuthenticationPrincipal CustomUserDetails principal) {
-        farmService.deleteMyFarm(principal.getUserId());
-        return ResponseEntity.ok(ApiResponse.success("Farm deleted successfully"));
-    }
-
-    // ── Multi-Farm Endpoints (/farms) ─────────────────────────────────────────
 
     @GetMapping("/farms")
     public ResponseEntity<ApiResponse<List<FarmResponse>>> getAllMyFarms(
@@ -69,7 +48,7 @@ public class FarmerFarmController {
     @GetMapping("/farms/{id}")
     public ResponseEntity<ApiResponse<FarmResponse>> getMyFarmById(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable Long id) {
+            @PathVariable @Positive Long id) {
         FarmResponse response = farmService.getMyFarmById(principal.getUserId(), id);
         return ResponseEntity.ok(ApiResponse.success("Farm retrieved successfully", response));
     }
@@ -77,7 +56,7 @@ public class FarmerFarmController {
     @PutMapping("/farms/{id}")
     public ResponseEntity<ApiResponse<FarmResponse>> updateMyFarmById(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable Long id,
+            @PathVariable @Positive Long id,
             @Valid @RequestBody UpdateFarmRequest request) {
         FarmResponse response = farmService.updateMyFarmById(principal.getUserId(), id, request);
         return ResponseEntity.ok(ApiResponse.success("Farm updated successfully", response));
@@ -86,7 +65,7 @@ public class FarmerFarmController {
     @DeleteMapping("/farms/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteMyFarmById(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable Long id) {
+            @PathVariable @Positive Long id) {
         farmService.deleteMyFarmById(principal.getUserId(), id);
         return ResponseEntity.ok(ApiResponse.success("Farm deleted successfully"));
     }

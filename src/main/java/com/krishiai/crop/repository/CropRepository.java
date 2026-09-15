@@ -16,7 +16,10 @@ public interface CropRepository extends JpaRepository<Crop, Long> {
     Optional<Crop> findByNameIgnoreCase(String name);
     boolean existsByNameIgnoreCase(String name);
     List<Crop> findByActiveTrueOrderByNameAsc();
+    List<Crop> findByCategoryIdAndActiveTrueOrderByNameAsc(Long categoryId);
     Page<Crop> findAllByActiveTrueOrderByNameAsc(Pageable pageable);
+    Page<Crop> findAllByOrderByNameAsc(Pageable pageable);
+    Page<Crop> findByCategoryIdOrderByNameAsc(Long categoryId, Pageable pageable);
     Page<Crop> findByCategoryIdAndActiveTrueOrderByNameAsc(Long categoryId, Pageable pageable);
 
     @Query("SELECT c FROM Crop c JOIN FETCH c.category WHERE c.active = true " +
@@ -27,6 +30,20 @@ public interface CropRepository extends JpaRepository<Crop, Long> {
     Page<Crop> searchActiveCrops(
             @Param("categoryId") Long categoryId,
             @Param("search") String search,
+            Pageable pageable
+    );
+
+    @Query("SELECT c FROM Crop c JOIN FETCH c.category WHERE " +
+           "(:activeOnly = false OR c.active = true) " +
+           "AND (:categoryId IS NULL OR c.category.id = :categoryId) " +
+           "AND (:search IS NULL OR LOWER(c.name) LIKE CONCAT('%', :search, '%') " +
+           "OR LOWER(c.nepaliName) LIKE CONCAT('%', :search, '%') " +
+           "OR LOWER(c.scientificName) LIKE CONCAT('%', :search, '%')) " +
+           "ORDER BY c.name ASC")
+    Page<Crop> searchAdminCrops(
+            @Param("categoryId") Long categoryId,
+            @Param("search") String search,
+            @Param("activeOnly") boolean activeOnly,
             Pageable pageable
     );
 }

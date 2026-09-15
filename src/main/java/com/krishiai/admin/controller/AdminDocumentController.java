@@ -8,6 +8,7 @@ import com.krishiai.expert.dto.ExpertDocumentResponse;
 import com.krishiai.expert.entity.ExpertDocumentStatus;
 import com.krishiai.security.userdetails.CustomUserDetails;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -15,11 +16,13 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/admin/documents")
 @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+@Validated
 @RequiredArgsConstructor
 public class AdminDocumentController {
 
@@ -36,14 +39,14 @@ public class AdminDocumentController {
 
     @GetMapping("/{documentId}")
     public ResponseEntity<ApiResponse<ExpertDocumentResponse>> getDocumentById(
-            @PathVariable Long documentId) {
+            @PathVariable @Positive Long documentId) {
         ExpertDocumentResponse response = adminDocumentService.getDocumentById(documentId);
         return ResponseEntity.ok(ApiResponse.success("Document retrieved successfully", response));
     }
 
     @PostMapping("/{documentId}/approve")
     public ResponseEntity<ApiResponse<ExpertDocumentResponse>> approveDocument(
-            @PathVariable Long documentId,
+            @PathVariable @Positive Long documentId,
             @AuthenticationPrincipal CustomUserDetails principal) {
         Long adminId = (principal != null) ? principal.getUserId() : null;
         ExpertDocumentResponse response = adminDocumentService.approveDocument(documentId, adminId);
@@ -52,7 +55,7 @@ public class AdminDocumentController {
 
     @PostMapping("/{documentId}/reject")
     public ResponseEntity<ApiResponse<ExpertDocumentResponse>> rejectDocument(
-            @PathVariable Long documentId,
+            @PathVariable @Positive Long documentId,
             @Valid @RequestBody RejectDocumentRequest request,
             @AuthenticationPrincipal CustomUserDetails principal) {
         Long adminId = (principal != null) ? principal.getUserId() : null;

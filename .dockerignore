@@ -1,0 +1,42 @@
+# .dockerignore
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+
+# Build & Dependencies
+target/
+.mvn/
+mvnw
+mvnw.cmd
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md
+
+# Windows
+compile.bat
+
+# Logs
+*.log
+logs/
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# GitHub
+.github/

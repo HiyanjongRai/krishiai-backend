@@ -32,6 +32,15 @@ public class CropServiceImpl implements CropService {
 
     @Override
     @Transactional(readOnly = true)
+    public CropCategoryResponse getActiveCategoryById(Long categoryId) {
+        return categoryRepository.findById(categoryId)
+                .filter(com.krishiai.crop.entity.CropCategory::isActive)
+                .map(CropCategoryResponse::from)
+                .orElseThrow(() -> new ResourceNotFoundException("Crop category not found with id: " + categoryId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public PageResponse<CropResponse> getActiveCrops(Long categoryId, String search, Pageable pageable) {
         String cleanSearch = (search != null && !search.isBlank()) ? search.strip().toLowerCase() : null;
         Page<Crop> page;
@@ -50,7 +59,20 @@ public class CropServiceImpl implements CropService {
     @Override
     @Transactional(readOnly = true)
     public CropResponse getCropById(Long id) {
-        return CropResponse.from(getCropEntity(id));
+        return cropRepository.findById(id)
+                .filter(Crop::isActive)
+                .map(CropResponse::from)
+                .orElseThrow(() -> new ResourceNotFoundException("Crop not found with id: " + id));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CropResponse> getActiveCropsByCategory(Long categoryId) {
+        getActiveCategoryById(categoryId);
+        return cropRepository.findByCategoryIdAndActiveTrueOrderByNameAsc(categoryId)
+                .stream()
+                .map(CropResponse::from)
+                .toList();
     }
 
     @Override

@@ -10,7 +10,9 @@ public record CropResponse(
         String scientificName,
         String nepaliName,
         String emoji,
+        String imageUrl,
         String description,
+        boolean defaultCrop,
         boolean active
 ) {
     public static CropResponse from(Crop crop) {
@@ -22,7 +24,9 @@ public record CropResponse(
                 crop.getScientificName(),
                 crop.getNepaliName(),
                 crop.getEmoji(),
+                crop.getImageUrl(),
                 crop.getDescription(),
+                crop.isDefaultCrop(),
                 crop.isActive()
         );
     }

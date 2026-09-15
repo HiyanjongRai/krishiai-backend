@@ -16,5 +16,7 @@ public interface AdminCropCategoryService {
 
     CropCategoryResponse updateCategory(Long categoryId, UpdateCropCategoryRequest request);
 
+    CropCategoryResponse updateStatus(Long categoryId, boolean active);
+
     void deleteCategory(Long categoryId);
 }

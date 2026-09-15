@@ -23,10 +23,4 @@ public interface AdminUserService {
     );
 
     com.krishiai.user.dto.UserResponse getUserById(Long userId);
-
-    com.krishiai.user.dto.UserResponse updateUserRole(
-            Long targetUserId,
-            com.krishiai.admin.dto.UpdateUserRoleRequest request,
-            Long currentAdminId
-    );
 }
