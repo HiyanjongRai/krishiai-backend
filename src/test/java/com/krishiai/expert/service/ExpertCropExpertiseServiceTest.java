@@ -201,8 +201,8 @@ class ExpertCropExpertiseServiceTest {
 
         BatchExpertiseVerificationRequest batchReq = new BatchExpertiseVerificationRequest(
                 List.of(
-                        new BatchExpertiseVerificationRequest.Item(501L, "VERIFY", null, ExpertiseVerificationMethod.DOCUMENT_REVIEW),
-                        new BatchExpertiseVerificationRequest.Item(502L, "REJECT", "Insufficient documentation provided", null)
+                        new BatchExpertiseVerificationRequest.Item(501L, BatchExpertiseVerificationRequest.Decision.VERIFY, null, ExpertiseVerificationMethod.DOCUMENT_REVIEW),
+                        new BatchExpertiseVerificationRequest.Item(502L, BatchExpertiseVerificationRequest.Decision.REJECT, "Insufficient documentation provided", null)
                 ),
                 "Review of submitted claims"
         );

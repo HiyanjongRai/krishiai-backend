@@ -176,6 +176,13 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.PAYLOAD_TOO_LARGE, "Uploaded file exceeds the maximum allowed size limit.", request.getRequestURI());
     }
 
+    @ExceptionHandler(com.krishiai.weather.exception.WeatherException.class)
+    public ResponseEntity<ApiError> handleWeatherException(
+            com.krishiai.weather.exception.WeatherException ex, HttpServletRequest request) {
+        log.warn("Weather service error at [{}]: {}", request.getRequestURI(), ex.getMessage());
+        return buildError(ex.getStatus(), ex.getMessage(), request.getRequestURI());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(
             Exception ex, HttpServletRequest request) {
