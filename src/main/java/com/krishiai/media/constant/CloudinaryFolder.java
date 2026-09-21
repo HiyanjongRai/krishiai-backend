@@ -10,6 +10,7 @@ public enum CloudinaryFolder {
     CROP_IMAGES("krishiai/crops"),
     DISEASE_IMAGES("krishiai/diseases"),
     AI_ANALYSIS("krishiai/ai-analysis"),
+    MESSAGING_ATTACHMENTS("krishiai/messaging/attachments"),
     GENERAL("krishiai/media");
 
     private final String path;

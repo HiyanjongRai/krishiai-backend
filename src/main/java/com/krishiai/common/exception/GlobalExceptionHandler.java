@@ -69,9 +69,12 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to serialize response", request.getRequestURI());
     }
 
-    @ExceptionHandler(org.apache.catalina.connector.ClientAbortException.class)
-    public void handleClientAbort(org.apache.catalina.connector.ClientAbortException ex, HttpServletRequest request) {
-        log.debug("Client aborted connection at [{}]: {}", request.getRequestURI(), ex.getMessage());
+    @ExceptionHandler({
+            org.apache.catalina.connector.ClientAbortException.class,
+            org.springframework.web.context.request.async.AsyncRequestNotUsableException.class
+    })
+    public void handleClientAbort(Exception ex, HttpServletRequest request) {
+        log.debug("Client closed/aborted connection at [{}]: {}", request.getRequestURI(), ex.getMessage());
     }
 
     @ExceptionHandler(ConflictException.class)

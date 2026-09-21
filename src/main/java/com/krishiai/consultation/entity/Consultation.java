@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 @Entity
@@ -17,7 +18,9 @@ import java.util.Objects;
         indexes = {
                 @Index(name = "idx_consultations_farmer", columnList = "farmer_id"),
                 @Index(name = "idx_consultations_expert", columnList = "expert_id"),
-                @Index(name = "idx_consultations_status", columnList = "status")
+                @Index(name = "idx_consultations_status", columnList = "status"),
+                @Index(name = "idx_consultations_farmer_status", columnList = "farmer_id, status"),
+                @Index(name = "idx_consultations_expert_status", columnList = "expert_id, status")
         }
 )
 @Getter
@@ -43,10 +46,23 @@ public class Consultation extends BaseEntity {
     @JoinColumn(name = "crop_id", foreignKey = @ForeignKey(name = "fk_consultations_crop"))
     private Crop crop;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "package_id", foreignKey = @ForeignKey(name = "fk_consultations_package"))
+    private ConsultationPackage packageEntity;
+
+    @Column(name = "price_at_purchase", precision = 12, scale = 2)
+    private java.math.BigDecimal priceAtPurchase;
+
+    @Column(name = "currency", length = 10)
+    private String currency = "NPR";
+
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
-    private ConsultationStatus status = ConsultationStatus.PENDING;
+    private ConsultationStatus status = ConsultationStatus.REQUESTED;
+
+    @Column(name = "subject", length = 255)
+    private String subject;
 
     @Column(name = "title", length = 200)
     private String title;
@@ -54,13 +70,62 @@ public class Consultation extends BaseEntity {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    public Consultation(User farmer, User expert, Crop crop, String title, String description) {
+    @Column(name = "accepted_at")
+    private LocalDateTime acceptedAt;
+
+    @Column(name = "payment_verified_at")
+    private LocalDateTime paymentVerifiedAt;
+
+    @Column(name = "started_at")
+    private LocalDateTime startedAt;
+
+    @Column(name = "expires_at")
+    private LocalDateTime expiresAt;
+
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
+    public Consultation(User farmer, User expert, Crop crop, String subject, String description) {
         this.farmer = farmer;
         this.expert = expert;
         this.crop = crop;
-        this.title = title;
+        this.subject = subject;
+        this.title = subject;
         this.description = description;
-        this.status = ConsultationStatus.PENDING;
+        this.status = ConsultationStatus.REQUESTED;
+        this.currency = "NPR";
+    }
+
+    public Consultation(User farmer, User expert, Crop crop, ConsultationPackage packageEntity, String subject, String description) {
+        this.farmer = farmer;
+        this.expert = expert;
+        this.crop = crop;
+        this.packageEntity = packageEntity;
+        if (packageEntity != null) {
+            this.priceAtPurchase = packageEntity.getPrice();
+            this.currency = packageEntity.getCurrency();
+        } else {
+            this.currency = "NPR";
+        }
+        this.subject = subject;
+        this.title = subject;
+        this.description = description;
+        this.status = ConsultationStatus.REQUESTED;
+    }
+
+    public boolean isExpired() {
+        if (expiresAt == null) return false;
+        return LocalDateTime.now().isAfter(expiresAt);
+    }
+
+
+    public String getDisplaySubject() {
+        if (subject != null && !subject.isBlank()) return subject;
+        if (title != null && !title.isBlank()) return title;
+        return "Crop Consultation";
     }
 
     @Override

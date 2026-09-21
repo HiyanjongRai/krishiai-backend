@@ -116,14 +116,29 @@ public class SecurityConfig {
                         // Error endpoint
                         .requestMatchers("/error").permitAll()
 
+                        // WebSocket handshake endpoint (JWT auth is enforced by STOMP interceptor)
+                        .requestMatchers("/ws/**").permitAll()
+
                         // Admin routes require ROLE_ADMIN
                         .requestMatchers("/api/v1/admin/**").hasAuthority("ROLE_ADMIN")
 
                         // Expert routes require ROLE_EXPERT. Admin management must use /api/v1/admin/**.
                         .requestMatchers("/api/v1/expert/**").hasAuthority("ROLE_EXPERT")
 
+                        // Consultation packages - public GET listing, mutations are expert-only (checked via @PreAuthorize)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/experts/*/consultation-packages").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/consultation-packages/**").permitAll()
+
+                        // Payments - farmers initiate/verify; experts/admin check status
+                        .requestMatchers("/api/v1/payments/**").hasAnyAuthority("ROLE_FARMER", "ROLE_EXPERT", "ROLE_ADMIN")
+
                         // Consultation messages are participant-checked in the service layer.
                         .requestMatchers("/api/v1/consultations/**").hasAnyAuthority("ROLE_FARMER", "ROLE_EXPERT", "ROLE_ADMIN")
+
+                        // Messaging system - membership checked in service
+                        .requestMatchers("/api/v1/conversations/**").authenticated()
+                        .requestMatchers("/api/v1/messages/**").authenticated()
+                        .requestMatchers("/api/v1/announcements/**").authenticated()
 
                         // Farmer routes require ROLE_FARMER
                         .requestMatchers("/api/v1/farmer/**").hasAuthority("ROLE_FARMER")

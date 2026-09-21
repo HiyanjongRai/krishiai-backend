@@ -93,6 +93,7 @@ public class MediaController {
             case EXPERT_DOCUMENTS -> isExpert || isAdmin;
             case FARMER_IMAGES, DISEASE_IMAGES, AI_ANALYSIS -> isFarmer || isAdmin;
             case CROP_IMAGES -> isAdmin;
+            case MESSAGING_ATTACHMENTS -> isFarmer || isExpert || isAdmin;
         };
 
         if (!allowed) {

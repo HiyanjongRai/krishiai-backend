@@ -13,6 +13,7 @@ import java.util.List;
  */
 public record VerifiedExpertResponse(
         Long expertProfileId,
+        Long userId,
         String fullName,
         String profileImage,
         String designation,
@@ -33,6 +34,7 @@ public record VerifiedExpertResponse(
                 ? ep.getUser().getFullName().trim()
                 : "Agricultural Specialist";
         String profileImage = ep.getUser() != null ? ep.getUser().getProfileImage() : null;
+        Long userId = ep.getUser() != null ? ep.getUser().getId() : null;
 
         List<PublicExpertiseResponse> all = ep.getCropExpertises() == null ? List.of() :
                 ep.getCropExpertises().stream()
@@ -57,6 +59,7 @@ public record VerifiedExpertResponse(
 
         return new VerifiedExpertResponse(
                 ep.getId(),
+                userId,
                 fullName,
                 profileImage,
                 ep.getDesignation(),
